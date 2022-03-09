@@ -9,12 +9,6 @@ import uk.ac.bris.cs.scotlandyard.model.Board.GameState;
 import uk.ac.bris.cs.scotlandyard.model.ScotlandYard.Factory;
 
 import java.util.Optional;
-import java.util.ArrayList;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.TreeSet;
->>>>>>> e2950e0 (12 tests passing)
 
 /**
  * cw-model
@@ -26,11 +20,9 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			GameSetup setup,
 			Player mrX,
 			ImmutableList<Player> detectives) {
-
 		// TODO
 		if(setup.moves.isEmpty()) throw new IllegalArgumentException();
 		if(detectives.equals(null)) throw new NullPointerException();
-
 		if(mrX.equals(null)) throw new NullPointerException();
 		for(int i=0; i<detectives.size(); i++) {
 			for(int j =0; j<detectives.size(); j++) {
@@ -42,22 +34,17 @@ public final class MyGameStateFactory implements Factory<GameState> {
 				}
 			}
 		}
-
 		for(int i = 0; i < detectives.size(); i++) {
 			if(detectives.get(i).has(ScotlandYard.Ticket.DOUBLE)) {
 				throw new IllegalArgumentException();
 			}
 		}
-
-		if()
 		return new GameState() {
 			@Nonnull
 			@Override
 			public GameState advance(Move move) {
 				if(move.equals(null)) throw new IllegalArgumentException();
 				return null;
-
-
 			}
 
 			@Nonnull
@@ -69,8 +56,6 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			@Nonnull
 			@Override
 			public ImmutableSet<Piece> getPlayers() {
-
-
 				return null;
 			}
 
@@ -95,23 +80,12 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			@Nonnull
 			@Override
 			public ImmutableSet<Piece> getWinner() {
-				return new ArrayList<Piece>();
-			public ImmutableSet<Piece> getWinner(){
 				return null;
 			}
 
 			@Nonnull
 			@Override
 			public ImmutableSet<Move> getAvailableMoves() {
-
-				ArrayList<Integer> locations = new ArrayList<Integer>();
-				for(int i =0; i < detectives.size(); i++) {
-					System.out.println(detectives.get(i).location());
-					locations.add(detectives.get(i).location());
-				}
-				for(int i =0; i < locations.size(); i++) {
-
-				}
 				return null;
 			}
 		};
