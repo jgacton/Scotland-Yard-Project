@@ -12,6 +12,7 @@ import uk.ac.bris.cs.scotlandyard.model.ScotlandYard.Factory;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
+import java.util.List;
 
 /**
  * cw-model
@@ -19,11 +20,119 @@ import java.util.Set;
  */
 public final class MyGameStateFactory implements Factory<GameState> {
 
+	private final class MyGameState implements GameState {
+		private GameSetup setup;
+		private ImmutableSet<Piece> remaining;
+		private ImmutableList<LogEntry> log;
+		private Player mrX;
+		private List<Player> detectives;
+		private ImmutableSet<Move> moves;
+		private ImmutableSet<Piece> winner;
+
+		private MyGameState(
+				final GameSetup setup,
+				final ImmutableSet<Piece> remaining,
+				final ImmutableList<LogEntry> log,
+				final Player mrX,
+				final List<Player> detectives) {
+
+			this.setup = setup;
+			this.remaining = remaining;
+			this.log = log;
+			this.mrX = mrX;
+			this.detectives = detectives;
+
+		}
+
+		@Nonnull
+		@Override
+		public GameSetup getSetup() {
+			return setup;
+		}
+
+		@Nonnull
+		@Override
+		public ImmutableSet<Piece> getPlayers() {
+			Set<Piece> playersMutable = new HashSet<>();
+			playersMutable.add(mrX.piece());
+			for(int i =0; i<detectives.size(); i++) {
+				playersMutable.add(detectives.get(i).piece());
+			}
+			return ImmutableSet.copyOf(playersMutable);
+		}
+
+		@Nonnull
+		@Override
+		public Optional<Integer> getDetectiveLocation(Piece.Detective detective) {
+			for(int i =0; i<detectives.size(); i++) {
+				if(detectives.get(i).piece().equals(detective)) {
+					return Optional.of(detectives.get(i).location());
+				}
+			}
+			return Optional.ofNullable(null);
+		}
+
+		@Nonnull
+		@Override
+		public Optional<TicketBoard> getPlayerTickets(Piece piece) {
+			ImmutableMap<ScotlandYard.Ticket, Integer> tickets = null;
+			if(mrX.piece().equals(piece)) {
+				tickets = mrX.tickets();
+			}
+			for(int i =0; i<detectives.size(); i++) {
+				if(detectives.get(i).piece().equals(piece)) {
+					tickets = detectives.get(i).tickets();
+				}
+			}
+			if(tickets == null) {return Optional.ofNullable(null);}
+			ImmutableMap<ScotlandYard.Ticket, Integer> finalTickets = tickets;
+			return Optional.of(new TicketBoard() {
+				@Override
+				public int getCount(@Nonnull ScotlandYard.Ticket ticket) {
+					return finalTickets.get(ticket);
+				}
+			});
+		}
+
+		@Nonnull
+		@Override
+		public ImmutableList<LogEntry> getMrXTravelLog() {
+			return this.log;
+		}
+
+		@Nonnull
+		@Override
+		public ImmutableSet<Piece> getWinner() {
+			Set<Piece> winners = new HashSet<>();
+			for(int i =0; i< detectives.size(); i++) {
+				if (detectives.get(i).hasAtLeast(ScotlandYard.Ticket.UNDERGROUND, 4) ||
+						detectives.get(i).hasAtLeast(ScotlandYard.Ticket.BUS, 8) ||
+						detectives.get(i).hasAtLeast(ScotlandYard.Ticket.TAXI, 11)) {
+					return ImmutableSet.copyOf(winners);
+				}
+			}
+			return null;
+		}
+
+		@Nonnull
+		@Override
+		public ImmutableSet<Move> getAvailableMoves() {
+			return this.moves;
+		}
+
+		@Nonnull
+		@Override
+		public GameState advance(Move move) {
+			if(move.equals(null)) throw new IllegalArgumentException();
+			return null;
+		}
+	}
+
 	@Nonnull @Override public GameState build(
 			GameSetup setup,
 			Player mrX,
 			ImmutableList<Player> detectives) {
-		// TODO
+
 		if(setup.graph.nodes().size() == 0) throw new IllegalArgumentException();
 		if(setup.moves.isEmpty()) throw new IllegalArgumentException();
 		if(detectives.equals(null)) throw new NullPointerException();
@@ -44,90 +153,8 @@ public final class MyGameStateFactory implements Factory<GameState> {
 				throw new IllegalArgumentException();
 			}
 		}
-		return new GameState() {
-			@Nonnull
-			@Override
-			public GameState advance(Move move) {
-				if(move.equals(null)) throw new IllegalArgumentException();
-				return null;
-			}
 
-			@Nonnull
-			@Override
-			public GameSetup getSetup() {
-				return setup;
-			}
-
-			@Nonnull
-			@Override
-			public ImmutableSet<Piece> getPlayers() {
-				Set<Piece> playersMutable = new HashSet<>();
-				playersMutable.add(mrX.piece());
-				for(int i =0; i<detectives.size(); i++) {
-					playersMutable.add(detectives.get(i).piece());
-				}
-				return ImmutableSet.copyOf(playersMutable);
-			}
-
-			@Nonnull
-			@Override
-			public Optional<Integer> getDetectiveLocation(Piece.Detective detective) {
-				for(int i =0; i<detectives.size(); i++) {
-					if(detectives.get(i).piece().equals(detective)) {
-						return Optional.of(detectives.get(i).location());
-					}
-				}
-				return Optional.ofNullable(null);
-			}
-
-			@Nonnull
-			@Override
-			public Optional<TicketBoard> getPlayerTickets(Piece piece) {
-				ImmutableMap<ScotlandYard.Ticket, Integer> tickets = null;
-				if(mrX.piece().equals(piece)) {
-					tickets = mrX.tickets();
-				}
-				for(int i =0; i<detectives.size(); i++) {
-					if(detectives.get(i).piece().equals(piece)) {
-						tickets = detectives.get(i).tickets();
-					}
-				}
-				if(tickets == null) {return Optional.ofNullable(null);}
-				ImmutableMap<ScotlandYard.Ticket, Integer> finalTickets = tickets;
-				return Optional.of(new TicketBoard() {
-					@Override
-					public int getCount(@Nonnull ScotlandYard.Ticket ticket) {
-						return finalTickets.get(ticket);
-					}
-				});
-			}
-
-			@Nonnull
-			@Override
-			public ImmutableList<LogEntry> getMrXTravelLog() {
-				return null;
-			}
-
-			@Nonnull
-			@Override
-			public ImmutableSet<Piece> getWinner() {
-				Set<Piece> winners = new HashSet<>();
-				for(int i =0; i< detectives.size(); i++) {
-					if (detectives.get(i).hasAtLeast(ScotlandYard.Ticket.UNDERGROUND, 4) ||
-							detectives.get(i).hasAtLeast(ScotlandYard.Ticket.BUS, 8) ||
-							detectives.get(i).hasAtLeast(ScotlandYard.Ticket.TAXI, 11)) {
-						return ImmutableSet.copyOf(winners);
-					}
-				}
-				return null;
-			}
-
-			@Nonnull
-			@Override
-			public ImmutableSet<Move> getAvailableMoves() {
-				return null;
-			}
-		};
+		return new MyGameState(setup, ImmutableSet.of(Piece.MrX.MRX), ImmutableList.of(), mrX, detectives);
 	}
 
 }
