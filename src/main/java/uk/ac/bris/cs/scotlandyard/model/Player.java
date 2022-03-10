@@ -115,9 +115,6 @@ public final class Player {
             Objects.equals(tickets, that.tickets);
    }
 
-   public String getWebColour(Player player) {
-      return player.piece.webColour();
-   }
    @Override public int hashCode() { return Objects.hash(piece, tickets, location); }
    @Override public String toString() { return piece + "@" + location + "(" + tickets + ")"; }
 }
