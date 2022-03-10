@@ -9,10 +9,7 @@ import com.google.common.collect.ImmutableSet;
 import uk.ac.bris.cs.scotlandyard.model.Board.GameState;
 import uk.ac.bris.cs.scotlandyard.model.ScotlandYard.Factory;
 
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
-import java.util.List;
+import java.util.*;
 
 /**
  * cw-model
@@ -21,11 +18,11 @@ import java.util.List;
 public final class MyGameStateFactory implements Factory<GameState> {
 
 	private final class MyGameState implements GameState {
-		private GameSetup setup;
-		private ImmutableSet<Piece> remaining;
-		private ImmutableList<LogEntry> log;
-		private Player mrX;
-		private List<Player> detectives;
+		private final GameSetup setup;
+		private final ImmutableSet<Piece> remaining;
+		private final ImmutableList<LogEntry> log;
+		private final Player mrX;
+		private final List<Player> detectives;
 		private ImmutableSet<Move> moves;
 		private ImmutableSet<Piece> winner;
 
@@ -114,9 +111,39 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			return null;
 		}
 
+		private static Set<Move.SingleMove> makeSingleMoves(GameSetup setup, List<Player> detectives, Player player, int source){
+
+			Set<Move.SingleMove> singleMoves = new HashSet<>();
+
+			for(int destination : setup.graph.adjacentNodes(source)) {
+				// TODO find out if destination is occupied by a detective
+				//  if the location is occupied, don't add to the collection of moves to return
+				boolean occupied = false;
+				for(int i = 0; i < detectives.size(); i++) {
+					if(detectives.get(i).location() == destination) occupied = true;
+				}
+
+
+				for(ScotlandYard.Transport t : setup.graph.edgeValueOrDefault(source, destination, ImmutableSet.of()) ) {
+					// TODO find out if the player has the required tickets
+					//  if it does, construct a SingleMove and add it the collection of moves to return
+					if(!player.has(t.requiredTicket())) {
+						Move.SingleMove move = new Move.SingleMove(player.piece(), source, t.requiredTicket(), destination);
+						singleMoves.add(move);
+					}
+				}
+
+				// TODO consider the rules of secret moves here
+				//  add moves to the destination via a secret ticket if there are any left with the player
+			}
+
+			return singleMoves;
+		}
+
 		@Nonnull
 		@Override
 		public ImmutableSet<Move> getAvailableMoves() {
+			this.moves = ImmutableSet.copyOf(makeSingleMoves(this.setup, this.detectives, this.mrX, mrX.location()));
 			return this.moves;
 		}
 
