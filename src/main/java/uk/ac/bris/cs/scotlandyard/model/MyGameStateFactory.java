@@ -197,14 +197,6 @@ public final class MyGameStateFactory implements Factory<GameState> {
 						}
 					}
 				}
-
-				// Generates single moves for secret tickets
-				/*for(ScotlandYard.Transport t : setup.graph.edgeValueOrDefault(source, destination, ImmutableSet.of()) ) {
-					if(player.has(ScotlandYard.Ticket.SECRET) && ! occupied) {
-						Move.SingleMove move = new Move.SingleMove(player.piece(), source, ScotlandYard.Ticket.SECRET, destination);
-						singleMoves.add(move);
-					}
-				}*/
 			}
 
 			return doubleMoves;
@@ -219,8 +211,32 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		@Nonnull
 		@Override
 		public GameState advance(Move move) {
-			if(move.equals(null)) throw new IllegalArgumentException();
-			return null;
+			if(!moves.contains(move)) throw new IllegalArgumentException("Illegal move: "+move);
+
+			Move.Visitor<Integer> getDestination = new Move.FunctionalVisitor<>((x -> x.destination), (x -> x.destination2));
+			int destination = move.accept(getDestination);
+
+			Move.Visitor<Boolean> ifIsDouble = new Move.FunctionalVisitor<>((x -> false), (x -> true));
+			boolean isDouble = move.accept(ifIsDouble);
+
+			if(isDouble) {
+
+			}
+
+			if(move.commencedBy().isMrX()) {
+				if(setup.moves.get(0) == true) {
+					LogEntry entry = LogEntry.reveal(move.tickets(), destination);
+				}
+
+				Player nextMrX = new Player(mrX.piece(), mrX., destination);
+			}
+
+			// Update the location of the moved piece to the destination of the move
+			// Update the counts of relevant tickets (subtract however many required for move)
+
+			GameState newState = build(this.setup, nextMrX, ImmutableList.copyOf(this.detectives));
+			return newState;
+
 		}
 	}
 

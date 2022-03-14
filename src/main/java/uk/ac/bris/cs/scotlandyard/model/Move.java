@@ -26,7 +26,7 @@ public interface Move extends Serializable {
 	 */
 	@Nonnull Iterable<Ticket> tickets();
 	/**
-	 * @return the source of this move (i.e where the player is at before the move)
+	 * @return the source of this move (i.e. where the player is at before the move)
 	 */
 	int source();
 	/**
@@ -42,7 +42,7 @@ public interface Move extends Serializable {
 	/**
 	 * A generic visitor for use with the {@link Move#accept(Visitor)} method.
 	 *
-	 * @param <T> the resulting type; use {@link Void} if not returning (i.e side effect)
+	 * @param <T> the resulting type; use {@link Void} if not returning (i.e. side effect)
 	 */
 	interface Visitor<T> {
 		/**
