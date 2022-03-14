@@ -39,9 +39,12 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			this.mrX = mrX;
 			this.detectives = detectives;
 			Set<Move> singleMoves = ImmutableSet.copyOf(makeSingleMoves(this.setup, this.detectives, this.mrX, mrX.location()));
-			//Set<Move> doubleMoves = ImmutableSet.copyOf(makeDoubleMoves(this.setup, this.detectives, this.mrX, mrX.location()));
-			this.moves = ImmutableSet.<Move>builder().addAll(singleMoves)/*.addAll(doubleMoves)*/.build();
-
+			if(mrX.has(ScotlandYard.Ticket.DOUBLE) && setup.moves.size() > 1) {
+				Set<Move> doubleMoves = ImmutableSet.copyOf(makeDoubleMoves(this.setup, this.detectives, this.mrX, mrX.location()));
+				this.moves = ImmutableSet.<Move>builder().addAll(singleMoves).addAll(doubleMoves).build();
+			} else {
+				this.moves = ImmutableSet.<Move>builder().addAll(singleMoves).build();
+			}
 		}
 
 		@Nonnull
@@ -119,16 +122,10 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			Set<Move> singleMoves = new HashSet<>();
 
 			for(int destination : setup.graph.adjacentNodes(source)) {
-				boolean occupied = false;
-
-				// Checks destination node unoccupied
-				for(int i = 0; i < detectives.size(); i++) {
-					if(detectives.get(i).location() == destination) occupied = true;
-				}
 
 				// Generates single moves for normal tickets (Taxi, Bus, Train)
 				for(ScotlandYard.Transport t : setup.graph.edgeValueOrDefault(source, destination, ImmutableSet.of()) ) {
-					if(player.has(t.requiredTicket()) && ! occupied) {
+					if(player.has(t.requiredTicket()) && !checkNodeOccupied(detectives, destination)) {
 						Move.SingleMove move = new Move.SingleMove(player.piece(), source, t.requiredTicket(), destination);
 						singleMoves.add(move);
 					}
@@ -136,7 +133,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 				// Generates single moves for secret tickets
 				for(ScotlandYard.Transport t : setup.graph.edgeValueOrDefault(source, destination, ImmutableSet.of()) ) {
-					if(player.has(ScotlandYard.Ticket.SECRET) && ! occupied) {
+					if(player.has(ScotlandYard.Ticket.SECRET) && !checkNodeOccupied(detectives, destination)) {
 						Move.SingleMove move = new Move.SingleMove(player.piece(), source, ScotlandYard.Ticket.SECRET, destination);
 						singleMoves.add(move);
 					}
@@ -163,14 +160,36 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 					for(int destination2 : setup.graph.adjacentNodes(destination1)) {
 
-						if(!checkNodeOccupied(detectives, destination1)) {
+						if(!checkNodeOccupied(detectives, destination2)) {
 
 							for(ScotlandYard.Transport t1 : setup.graph.edgeValueOrDefault(source, destination1, ImmutableSet.of())) {
-								if(player.has(t1.requiredTicket())) {
+								if(player.has(t1.requiredTicket()) || player.has(ScotlandYard.Ticket.SECRET)) {
+
 									for(ScotlandYard.Transport t2 : setup.graph.edgeValueOrDefault(destination1, destination2, ImmutableSet.of())) {
-										if(player.has(t2.requiredTicket())) {
-											Move.DoubleMove doubleMove = new Move.DoubleMove(player.piece(), source, t1.requiredTicket(), destination1, t2.requiredTicket(), destination2);
-											doubleMoves.add(doubleMove);
+										if(player.has(t2.requiredTicket()) || player.has(ScotlandYard.Ticket.SECRET)) {
+
+											if(t1.requiredTicket().equals(t2.requiredTicket()) && player.hasAtLeast(t1.requiredTicket(), 2)) {
+												Move.DoubleMove doubleMove = new Move.DoubleMove(player.piece(), source, t1.requiredTicket(), destination1, t2.requiredTicket(), destination2);
+												doubleMoves.add(doubleMove);
+											} else if (!t1.requiredTicket().equals(t2.requiredTicket())) {
+												Move.DoubleMove doubleMove = new Move.DoubleMove(player.piece(), source, t1.requiredTicket(), destination1, t2.requiredTicket(), destination2);
+												doubleMoves.add(doubleMove);
+											}
+
+											if(player.hasAtLeast(ScotlandYard.Ticket.SECRET, 2)) {
+												Move.DoubleMove doubleMove = new Move.DoubleMove(player.piece(), source, ScotlandYard.Ticket.SECRET, destination1, ScotlandYard.Ticket.SECRET, destination2);
+												doubleMoves.add(doubleMove);
+											}
+
+											if(player.has(t1.requiredTicket()) && player.has(ScotlandYard.Ticket.SECRET)) {
+												Move.DoubleMove doubleMove = new Move.DoubleMove(player.piece(), source, t1.requiredTicket(), destination1, ScotlandYard.Ticket.SECRET, destination2);
+												doubleMoves.add(doubleMove);
+											}
+
+											if(player.has(ScotlandYard.Ticket.SECRET) && player.has(t2.requiredTicket())) {
+												Move.DoubleMove doubleMove = new Move.DoubleMove(player.piece(), source, ScotlandYard.Ticket.SECRET, destination1, t2.requiredTicket(), destination2);
+												doubleMoves.add(doubleMove);
+											}
 										}
 									}
 								}
@@ -178,12 +197,6 @@ public final class MyGameStateFactory implements Factory<GameState> {
 						}
 					}
 				}
-
-
-
-
-
-
 
 				// Generates single moves for secret tickets
 				/*for(ScotlandYard.Transport t : setup.graph.edgeValueOrDefault(source, destination, ImmutableSet.of()) ) {
