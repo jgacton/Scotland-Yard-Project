@@ -38,6 +38,9 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			this.log = log;
 			this.mrX = mrX;
 			this.detectives = detectives;
+			Set<Move> singleMoves = ImmutableSet.copyOf(makeSingleMoves(this.setup, this.detectives, this.mrX, mrX.location()));
+			//Set<Move> doubleMoves = ImmutableSet.copyOf(makeDoubleMoves(this.setup, this.detectives, this.mrX, mrX.location()));
+			this.moves = ImmutableSet.<Move>builder().addAll(singleMoves)/*.addAll(doubleMoves)*/.build();
 
 		}
 
@@ -111,39 +114,92 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			return null;
 		}
 
-		private static Set<Move.SingleMove> makeSingleMoves(GameSetup setup, List<Player> detectives, Player player, int source){
+		private static Set<Move> makeSingleMoves(GameSetup setup, List<Player> detectives, Player player, int source){
 
-			Set<Move.SingleMove> singleMoves = new HashSet<>();
+			Set<Move> singleMoves = new HashSet<>();
 
 			for(int destination : setup.graph.adjacentNodes(source)) {
-				// TODO find out if destination is occupied by a detective
-				//  if the location is occupied, don't add to the collection of moves to return
 				boolean occupied = false;
+
+				// Checks destination node unoccupied
 				for(int i = 0; i < detectives.size(); i++) {
 					if(detectives.get(i).location() == destination) occupied = true;
 				}
 
-
+				// Generates single moves for normal tickets (Taxi, Bus, Train)
 				for(ScotlandYard.Transport t : setup.graph.edgeValueOrDefault(source, destination, ImmutableSet.of()) ) {
-					// TODO find out if the player has the required tickets
-					//  if it does, construct a SingleMove and add it the collection of moves to return
-					if(!player.has(t.requiredTicket())) {
+					if(player.has(t.requiredTicket()) && ! occupied) {
 						Move.SingleMove move = new Move.SingleMove(player.piece(), source, t.requiredTicket(), destination);
 						singleMoves.add(move);
 					}
 				}
 
-				// TODO consider the rules of secret moves here
-				//  add moves to the destination via a secret ticket if there are any left with the player
+				// Generates single moves for secret tickets
+				for(ScotlandYard.Transport t : setup.graph.edgeValueOrDefault(source, destination, ImmutableSet.of()) ) {
+					if(player.has(ScotlandYard.Ticket.SECRET) && ! occupied) {
+						Move.SingleMove move = new Move.SingleMove(player.piece(), source, ScotlandYard.Ticket.SECRET, destination);
+						singleMoves.add(move);
+					}
+				}
 			}
 
 			return singleMoves;
 		}
 
+		private static boolean checkNodeOccupied(List<Player> detectives, int node) {
+			for(int i = 0; i < detectives.size(); i++) {
+				if(detectives.get(i).location() == node) return true;
+			}
+			return false;
+		}
+
+		private static Set<Move> makeDoubleMoves(GameSetup setup, List<Player> detectives, Player player, int source){
+
+			Set<Move> doubleMoves = new HashSet<>();
+
+			for(int destination1 : setup.graph.adjacentNodes(source)) {
+
+				if(!checkNodeOccupied(detectives, destination1)) {
+
+					for(int destination2 : setup.graph.adjacentNodes(destination1)) {
+
+						if(!checkNodeOccupied(detectives, destination1)) {
+
+							for(ScotlandYard.Transport t1 : setup.graph.edgeValueOrDefault(source, destination1, ImmutableSet.of())) {
+								if(player.has(t1.requiredTicket())) {
+									for(ScotlandYard.Transport t2 : setup.graph.edgeValueOrDefault(destination1, destination2, ImmutableSet.of())) {
+										if(player.has(t2.requiredTicket())) {
+											Move.DoubleMove doubleMove = new Move.DoubleMove(player.piece(), source, t1.requiredTicket(), destination1, t2.requiredTicket(), destination2);
+											doubleMoves.add(doubleMove);
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+
+
+
+
+
+
+
+				// Generates single moves for secret tickets
+				/*for(ScotlandYard.Transport t : setup.graph.edgeValueOrDefault(source, destination, ImmutableSet.of()) ) {
+					if(player.has(ScotlandYard.Ticket.SECRET) && ! occupied) {
+						Move.SingleMove move = new Move.SingleMove(player.piece(), source, ScotlandYard.Ticket.SECRET, destination);
+						singleMoves.add(move);
+					}
+				}*/
+			}
+
+			return doubleMoves;
+		}
+
 		@Nonnull
 		@Override
 		public ImmutableSet<Move> getAvailableMoves() {
-			this.moves = ImmutableSet.copyOf(makeSingleMoves(this.setup, this.detectives, this.mrX, mrX.location()));
 			return this.moves;
 		}
 
