@@ -10,13 +10,13 @@ import uk.ac.bris.cs.scotlandyard.model.Board.GameState;
 import uk.ac.bris.cs.scotlandyard.model.ScotlandYard.Factory;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * cw-model
  * Stage 1: Complete this class
  */
 public final class MyGameStateFactory implements Factory<GameState> {
-
 	private final class MyGameState implements GameState {
 		private final GameSetup setup;
 		private final ImmutableSet<Piece> remaining;
@@ -211,15 +211,45 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		@Nonnull
 		@Override
 		public GameState advance(Move move) {
+
+			// stores a new log entry with the added move
+			ImmutableList<LogEntry> logEntryFinal = ImmutableList.of();
+			List<LogEntry> logEntry = List.of();
+
 			if(!moves.contains(move)) throw new IllegalArgumentException("Illegal move: "+move);
 
 			Move.Visitor<Integer> getDestination = new Move.FunctionalVisitor<>((x -> x.destination), (x -> x.destination2));
 			int destination = move.accept(getDestination);
 
+			// gets ticket used for the move currently only focusing on single moves
+			Move.Visitor<ScotlandYard.Ticket> getTicket = new Move.FunctionalVisitor<>((x -> x.ticket), (x ->x.ticket1));
+			ScotlandYard.Ticket ticketUsed = move.accept(getTicket);
+
 			Move.Visitor<Boolean> ifIsDouble = new Move.FunctionalVisitor<>((x -> false), (x -> true));
 			boolean isDouble = move.accept(ifIsDouble);
 
-			if(isDouble) {
+			if(move.commencedBy().isMrX()) {
+				// adds all current moves to the log
+				for(int i =0; i<getMrXTravelLog().size(); i++) {
+					logEntry.add(this.log.get(i));
+				}
+				// want to check if it is Mr X's turn to surface
+				// do this using travel log size
+				// then want to create new log entry and add this to log
+				if(!isDouble && ScotlandYard.REVEAL_MOVES.contains(getMrXTravelLog().size())) {
+					logEntry.add(LogEntry.reveal(ticketUsed, destination));
+				}
+				else if(!isDouble) { logEntry.add(LogEntry.hidden(ticketUsed));}
+				logEntryFinal = (ImmutableList<LogEntry>) logEntry;
+				// takes used ticket away from Mr X
+				Player newMrXUsedTicket  = mrX.use(ticketUsed);
+				// moves Mr X to their new destination
+				Player newMrXChangedLoc =  mrX.at(destination);
+				// returns a new game state and swaps to the detective turn
+				return new MyGameState(setup, ImmutableSet.of((Piece) detectives.stream().map(Player::piece).collect(Collectors.toSet())), logEntryFinal, newMrXChangedLoc, detectives);
+			}
+
+			/*if(isDouble) {
 
 			}
 
@@ -234,8 +264,10 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			// Update the location of the moved piece to the destination of the move
 			// Update the counts of relevant tickets (subtract however many required for move)
 
-			GameState newState = build(this.setup, nextMrX, ImmutableList.copyOf(this.detectives));
-			return newState;
+			 */
+			return new MyGameState(setup, ImmutableSet.of(Piece.MrX.MRX), logEntryFinal, mrX, detectives);
+			//GameState newState = build(this.setup, this.mrX, ImmutableList.copyOf(this.detectives));
+			//return newState;
 
 		}
 	}
