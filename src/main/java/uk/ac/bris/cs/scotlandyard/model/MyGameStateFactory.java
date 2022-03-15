@@ -108,10 +108,10 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		@Override
 		public ImmutableSet<Piece> getWinner() {
 			Set<Piece> winners = new HashSet<>();
-			for(int i =0; i< detectives.size(); i++) {
-				if (detectives.get(i).hasAtLeast(ScotlandYard.Ticket.UNDERGROUND, 4) ||
-						detectives.get(i).hasAtLeast(ScotlandYard.Ticket.BUS, 8) ||
-						detectives.get(i).hasAtLeast(ScotlandYard.Ticket.TAXI, 11)) {
+			for (Player detective : detectives) {
+				if (detective.hasAtLeast(ScotlandYard.Ticket.UNDERGROUND, 4) ||
+						detective.hasAtLeast(ScotlandYard.Ticket.BUS, 8) ||
+						detective.hasAtLeast(ScotlandYard.Ticket.TAXI, 11)) {
 					return ImmutableSet.copyOf(winners);
 				}
 			}
@@ -211,15 +211,22 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 		private List<LogEntry> SingleMoveLogMrXLog(List<LogEntry> logEntry, ScotlandYard.Ticket ticketUsed, int destination) {
 			// adds a new log entry to the log based on if move hidden or not
+			// is not what houses moves ,
+			List<LogEntry> checking = new ArrayList<LogEntry>(this.log);
 			if(ScotlandYard.REVEAL_MOVES.contains(getMrXTravelLog().size())) {
 				logEntry.add(LogEntry.reveal(ticketUsed, destination));
 			}
 			else {System.out.println("here");
-				logEntry.add(LogEntry.hidden(ticketUsed));
-				System.out.println("here again");}
-			for (LogEntry entry : logEntry) {
+				LogEntry myNewLogEntry = LogEntry.hidden(ticketUsed);
+				checking.add(myNewLogEntry);
+				System.out.println("here after checking ");
+				//logEntry.add(myNewLogEntry);
+				//System.out.println("here again");
+				}
+			for (LogEntry entry : checking) {
 				System.out.println(entry);
 			}
+			logEntry = checking;
 			return logEntry;
 		}
 
@@ -286,7 +293,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 				return new MyGameState(setup, (ImmutableSet<Piece>) remainingUpdated, logEntryFinal, newMrXChangedLoc, detectives);
 				// returns a new game state and swaps to the detective turn
 			}
-			
+
 			else {
 				// get the given detective piece
 				Optional<Player> currentDetectiveTurn = detectives.stream().filter(d -> d.piece().equals(move.commencedBy())).findFirst();
