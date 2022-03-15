@@ -58,8 +58,9 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		public ImmutableSet<Piece> getPlayers() {
 			Set<Piece> playersMutable = new HashSet<>();
 			playersMutable.add(mrX.piece());
-			for(int i =0; i<detectives.size(); i++) {
-				playersMutable.add(detectives.get(i).piece());
+
+			for (Player detective : detectives) {
+				playersMutable.add(detective.piece());
 			}
 			return ImmutableSet.copyOf(playersMutable);
 		}
@@ -208,46 +209,107 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			return this.moves;
 		}
 
+		private List<LogEntry> SingleMoveLogMrXLog(List<LogEntry> logEntry, ScotlandYard.Ticket ticketUsed, int destination) {
+			// adds a new log entry to the log based on if move hidden or not
+			if(ScotlandYard.REVEAL_MOVES.contains(getMrXTravelLog().size())) {
+				logEntry.add(LogEntry.reveal(ticketUsed, destination));
+			}
+			else {System.out.println("here");
+				logEntry.add(LogEntry.hidden(ticketUsed));
+				System.out.println("here again");}
+			for (LogEntry entry : logEntry) {
+				System.out.println(entry);
+			}
+			return logEntry;
+		}
+
 		@Nonnull
 		@Override
 		public GameState advance(Move move) {
 
 			// stores a new log entry with the added move
 			ImmutableList<LogEntry> logEntryFinal = ImmutableList.of();
-			List<LogEntry> logEntry = List.of();
+			List<LogEntry> logEntry = List.copyOf(this.log);
+			List<Integer> intList = new ArrayList<>();
+			intList.add(1);
 
 			if(!moves.contains(move)) throw new IllegalArgumentException("Illegal move: "+move);
 
-			Move.Visitor<Integer> getDestination = new Move.FunctionalVisitor<>((x -> x.destination), (x -> x.destination2));
-			int destination = move.accept(getDestination);
+			// gets the final destination , for single moves this is just x.destination
+			// for double it is x.destination2
+			Move.Visitor<Integer> getDestinationFinal = new Move.FunctionalVisitor<>((x -> x.destination), (x -> x.destination2));
+			int destinationFinal = move.accept(getDestinationFinal);
 
-			// gets ticket used for the move currently only focusing on single moves
-			Move.Visitor<ScotlandYard.Ticket> getTicket = new Move.FunctionalVisitor<>((x -> x.ticket), (x ->x.ticket1));
-			ScotlandYard.Ticket ticketUsed = move.accept(getTicket);
+			// gets the intermediate destination
+			Move.Visitor<Integer> getDestinationIntermediate = new Move.FunctionalVisitor<>((x -> x.destination), (x -> x.destination1));
+			int destinationIntermediate = move.accept(getDestinationIntermediate);
 
+			// gets the intermediate tickets
+			Move.Visitor<ScotlandYard.Ticket> getTicketIntermediate = new Move.FunctionalVisitor<>((x -> x.ticket), (x ->x.ticket1));
+			ScotlandYard.Ticket ticketUsedIntermediate = move.accept(getTicketIntermediate);
+
+			// gets the final tickets
+			Move.Visitor<ScotlandYard.Ticket> getTicketFinal = new Move.FunctionalVisitor<>((x -> x.ticket), (x ->x.ticket2));
+			ScotlandYard.Ticket ticketUsedFinal = move.accept(getTicketFinal);
+
+			// gets if a move made is a double move or not
 			Move.Visitor<Boolean> ifIsDouble = new Move.FunctionalVisitor<>((x -> false), (x -> true));
 			boolean isDouble = move.accept(ifIsDouble);
-
 			if(move.commencedBy().isMrX()) {
-				// adds all current moves to the log
-				for(int i =0; i<getMrXTravelLog().size(); i++) {
-					logEntry.add(this.log.get(i));
+				Player newMrXChangedLoc;
+				if(!isDouble) {
+					// enter the move into the log
+					logEntryFinal = ImmutableList.copyOf(SingleMoveLogMrXLog(logEntry, ticketUsedIntermediate, destinationFinal));
+					// takes used ticket away from Mr X by returning a new Mr X without this ticket
+					// Q - what happens to old Mr X?
+					Player newMrXUsedTicket  = mrX.use(ticketUsedIntermediate);
+					// moves Mr X to their new destination by returning a new Mr X at this destination
+					// Q - what happens to old Mr Xs?
+					newMrXChangedLoc =  newMrXUsedTicket.at(destinationFinal);
 				}
-				// want to check if it is Mr X's turn to surface
-				// do this using travel log size
-				// then want to create new log entry and add this to log
-				if(!isDouble && ScotlandYard.REVEAL_MOVES.contains(getMrXTravelLog().size())) {
-					logEntry.add(LogEntry.reveal(ticketUsed, destination));
+				else {
+					// double move of Mr X
+					List<LogEntry> logEntryFirstMove;
+					// add their first move into the log
+					logEntryFirstMove = SingleMoveLogMrXLog(logEntry, ticketUsedIntermediate, destinationIntermediate);
+					// add their second move into the log
+					logEntryFinal = ImmutableList.copyOf(SingleMoveLogMrXLog(logEntryFirstMove,ticketUsedFinal, destinationFinal));
+					// create new Mr X objects as previously
+					// Q - what happens to the old Mr X objects?
+					Player newMrXUsedTicket1  = mrX.use(ticketUsedIntermediate);
+					Player newMrXUsedTicket2  = newMrXUsedTicket1.use(ticketUsedFinal);
+					newMrXChangedLoc =  newMrXUsedTicket2.at(destinationFinal);
 				}
-				else if(!isDouble) { logEntry.add(LogEntry.hidden(ticketUsed));}
-				logEntryFinal = (ImmutableList<LogEntry>) logEntry;
-				// takes used ticket away from Mr X
-				Player newMrXUsedTicket  = mrX.use(ticketUsed);
-				// moves Mr X to their new destination
-				Player newMrXChangedLoc =  mrX.at(destination);
+				// change to detectives turn means remove Mr X from remaining
+				Set<Piece> remainingUpdated = remaining.stream().filter(d -> !d.isMrX()).collect(Collectors.toSet());
+				// little confused on this part
+				return new MyGameState(setup, (ImmutableSet<Piece>) remainingUpdated, logEntryFinal, newMrXChangedLoc, detectives);
 				// returns a new game state and swaps to the detective turn
-				return new MyGameState(setup, ImmutableSet.of((Piece) detectives.stream().map(Player::piece).collect(Collectors.toSet())), logEntryFinal, newMrXChangedLoc, detectives);
 			}
+			
+			else {
+				// get the given detective piece
+				Optional<Player> currentDetectiveTurn = detectives.stream().filter(d -> d.piece().equals(move.commencedBy())).findFirst();
+				// checking ifPresent lost on
+				Player currentDetective = currentDetectiveTurn.get();
+				// returns detective at the new location
+				Player currentDetectiveNewLoc = currentDetective.at(destinationFinal);
+				// returns detective with one less ticket
+				Player currentDetectiveTickLost = currentDetectiveNewLoc.use(ticketUsedFinal);
+				// returns a Mr X with the ticket
+				Player newMrX = mrX.give(ticketUsedFinal);
+				// ensuring particular detective does not move again in this round
+				Set<Piece> remainingUpdated = Set.of();
+				// checks if no moves left for detective, then it is mrX turn
+				if (remaining.isEmpty()) {remainingUpdated.add(mrX.piece());}
+				// update rU to not have cD
+				else {remainingUpdated = remaining.stream().filter(d -> !d.equals(currentDetectiveTickLost.piece())).collect(Collectors.toSet());}
+				// update detectives and replace cD with cDTL
+				detectives.remove(currentDetective);
+				detectives.add(currentDetectiveTickLost);
+				return new MyGameState(setup, (ImmutableSet<Piece>)  remainingUpdated, logEntryFinal, newMrX, detectives);
+			}
+
 
 			/*if(isDouble) {
 
@@ -265,7 +327,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			// Update the counts of relevant tickets (subtract however many required for move)
 
 			 */
-			return new MyGameState(setup, ImmutableSet.of(Piece.MrX.MRX), logEntryFinal, mrX, detectives);
+			//return new MyGameState(setup, ImmutableSet.of(Piece.MrX.MRX), logEntryFinal, mrX, detectives);
 			//GameState newState = build(this.setup, this.mrX, ImmutableList.copyOf(this.detectives));
 			//return newState;
 
