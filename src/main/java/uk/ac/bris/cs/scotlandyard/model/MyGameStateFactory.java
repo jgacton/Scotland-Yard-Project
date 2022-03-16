@@ -22,7 +22,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		private final ImmutableSet<Piece> remaining;
 		private final ImmutableList<LogEntry> log;
 		private final Player mrX;
-		private final List<Player> detectives;
+		private List<Player> detectives;
 		private ImmutableSet<Move> moves;
 		private ImmutableSet<Piece> winner;
 
@@ -31,7 +31,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 				final ImmutableSet<Piece> remaining,
 				final ImmutableList<LogEntry> log,
 				final Player mrX,
-				final List<Player> detectives) {
+				List<Player> detectives) {
 
 			this.setup = setup;
 			this.remaining = remaining;
@@ -299,7 +299,10 @@ public final class MyGameStateFactory implements Factory<GameState> {
 				}
 				// change to detectives turn means remove Mr X from remaining
 				Set<Piece> remainingUpdated = remaining.stream().filter(d -> !d.isMrX()).collect(Collectors.toSet());
-				remainingUpdated.add(detectives.get(0).piece());
+				//remainingUpdated.add(detectives.get(0).piece());
+				for(Player detective : detectives) {
+					remainingUpdated.add(detective.piece());
+				}
 				// little confused on this part
 				return new MyGameState(setup, ImmutableSet.copyOf(remainingUpdated), logEntryFinal, newMrXChangedLoc, detectives);
 				// returns a new game state and swaps to the detective turn
@@ -321,11 +324,16 @@ public final class MyGameStateFactory implements Factory<GameState> {
 				// update rU to not have cD
 				remainingUpdated = remaining.stream().filter(d -> !d.equals(currentDetectiveTickLost.piece())).collect(Collectors.toSet());
 				// checks if no moves left for detective, then it is mrX turn
-				if(remainingUpdated.isEmpty()) {remainingUpdated.add(mrX.piece());}
+				if(remainingUpdated.isEmpty()) {
+					remainingUpdated.add(mrX.piece());
+					for(Player detective : detectives) {
+						remainingUpdated.add(detective.piece());
+					}
+				}
 				// update detectives and replace cD with cDTL
-				//detectives.remove(currentDetective);
-				//detectives.add(currentDetectiveTickLost);
-				return new MyGameState(setup, ImmutableSet.copyOf(remainingUpdated), logEntryFinal, newMrX, detectives);
+				List<Player> detectivesUpdated = detectives.stream().filter(d -> !d.equals(currentDetective)).collect(Collectors.toList());
+				detectivesUpdated.add(currentDetectiveTickLost);
+				return new MyGameState(setup, ImmutableSet.copyOf(remainingUpdated), logEntryFinal, newMrX, detectivesUpdated);
 			}
 		}
 	}
