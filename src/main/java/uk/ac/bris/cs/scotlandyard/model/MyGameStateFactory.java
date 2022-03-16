@@ -50,7 +50,9 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			} else {
 				Set<Move> singleMoves = new HashSet<>();
 				for(Player detective : detectives) {
-					singleMoves.addAll(makeSingleMoves(this.setup, this.detectives, detective, detective.location()));
+					if(remaining.contains(detective.piece())) {
+						singleMoves.addAll(makeSingleMoves(this.setup, this.detectives, detective, detective.location()));
+					}
 				}
 				this.moves = ImmutableSet.<Move>builder().addAll(singleMoves).build();
 			}
@@ -315,11 +317,11 @@ public final class MyGameStateFactory implements Factory<GameState> {
 				// returns a Mr X with the ticket
 				Player newMrX = mrX.give(ticketUsedFinal);
 				// ensuring particular detective does not move again in this round
-				Set<Piece> remainingUpdated = Set.of();
-				// checks if no moves left for detective, then it is mrX turn
-				if (remaining.isEmpty()) {remainingUpdated.add(mrX.piece());}
+				Set<Piece> remainingUpdated;
 				// update rU to not have cD
-				else {remainingUpdated = remaining.stream().filter(d -> !d.equals(currentDetectiveTickLost.piece())).collect(Collectors.toSet());}
+				remainingUpdated = remaining.stream().filter(d -> !d.equals(currentDetectiveTickLost.piece())).collect(Collectors.toSet());
+				// checks if no moves left for detective, then it is mrX turn
+				if(remainingUpdated.isEmpty()) {remainingUpdated.add(mrX.piece());}
 				// update detectives and replace cD with cDTL
 				//detectives.remove(currentDetective);
 				//detectives.add(currentDetectiveTickLost);
