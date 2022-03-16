@@ -48,7 +48,10 @@ public final class MyGameStateFactory implements Factory<GameState> {
 					this.moves = ImmutableSet.<Move>builder().addAll(singleMoves).build();
 				}
 			} else {
-				Set<Move> singleMoves = ImmutableSet.copyOf(makeSingleMoves(this.setup, this.detectives, detectives.get(0), detectives.get(0).location()));
+				Set<Move> singleMoves = new HashSet<>();
+				for(Player detective : detectives) {
+					singleMoves.addAll(makeSingleMoves(this.setup, this.detectives, detective, detective.location()));
+				}
 				this.moves = ImmutableSet.<Move>builder().addAll(singleMoves).build();
 			}
 			System.out.println(remaining.toString());
@@ -223,12 +226,9 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			if(ScotlandYard.REVEAL_MOVES.contains(getMrXTravelLog().size())) {
 				logEntry.add(LogEntry.reveal(ticketUsed, destination));
 			}
-			else {System.out.println("here");
+			else {
 				LogEntry myNewLogEntry = LogEntry.hidden(ticketUsed);
 				checking.add(myNewLogEntry);
-				System.out.println("here after checking ");
-				//logEntry.add(myNewLogEntry);
-				//System.out.println("here again");
 				}
 			for (LogEntry entry : checking) {
 				System.out.println(entry);
@@ -321,9 +321,9 @@ public final class MyGameStateFactory implements Factory<GameState> {
 				// update rU to not have cD
 				else {remainingUpdated = remaining.stream().filter(d -> !d.equals(currentDetectiveTickLost.piece())).collect(Collectors.toSet());}
 				// update detectives and replace cD with cDTL
-				detectives.remove(currentDetective);
-				detectives.add(currentDetectiveTickLost);
-				return new MyGameState(setup, (ImmutableSet<Piece>)  remainingUpdated, logEntryFinal, newMrX, detectives);
+				//detectives.remove(currentDetective);
+				//detectives.add(currentDetectiveTickLost);
+				return new MyGameState(setup, ImmutableSet.copyOf(remainingUpdated), logEntryFinal, newMrX, detectives);
 			}
 		}
 	}
