@@ -22,7 +22,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		private final ImmutableSet<Piece> remaining;
 		private final ImmutableList<LogEntry> log;
 		private final Player mrX;
-		private List<Player> detectives;
+		private final List<Player> detectives;
 		private ImmutableSet<Move> moves;
 		private ImmutableSet<Piece> winner;
 
@@ -223,10 +223,12 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 		private List<LogEntry> LogMrXMove(List<LogEntry> logEntry, ScotlandYard.Ticket ticketUsed, int destination) {
 			// adds a new log entry to the log based on if move hidden or not
-			// is not what houses moves ,
+			// is not what houses moves
 			List<LogEntry> checking = new ArrayList<>(logEntry);
-			if(ScotlandYard.REVEAL_MOVES.contains(getMrXTravelLog().size())) {
-				logEntry.add(LogEntry.reveal(ticketUsed, destination));
+			if(this.setup.moves.stream().findFirst().equals(true)) {
+				LogEntry myNewLogEntry = LogEntry.reveal(ticketUsed, destination);
+				checking.add(myNewLogEntry);
+				//logEntry.add(LogEntry.reveal(ticketUsed, destination));
 			}
 			else {
 				LogEntry myNewLogEntry = LogEntry.hidden(ticketUsed);
@@ -235,8 +237,8 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			for (LogEntry entry : checking) {
 				System.out.println(entry);
 			}
-			logEntry = checking;
-			return logEntry;
+
+			return checking;
 		}
 
 		@Nonnull
