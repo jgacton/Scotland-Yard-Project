@@ -221,10 +221,10 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			return this.moves;
 		}
 
-		private List<LogEntry> SingleMoveLogMrXLog(List<LogEntry> logEntry, ScotlandYard.Ticket ticketUsed, int destination) {
+		private List<LogEntry> LogMrXMove(List<LogEntry> logEntry, ScotlandYard.Ticket ticketUsed, int destination) {
 			// adds a new log entry to the log based on if move hidden or not
 			// is not what houses moves ,
-			List<LogEntry> checking = new ArrayList<LogEntry>(this.log);
+			List<LogEntry> checking = new ArrayList<>(logEntry);
 			if(ScotlandYard.REVEAL_MOVES.contains(getMrXTravelLog().size())) {
 				logEntry.add(LogEntry.reveal(ticketUsed, destination));
 			}
@@ -265,7 +265,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 				Player newMrXChangedLoc;
 				if(!isDouble) {
 					// enter the move into the log
-					logEntryFinal = ImmutableList.copyOf(SingleMoveLogMrXLog(logEntry, ticketUsedFinal, destinationFinal));
+					logEntryFinal = ImmutableList.copyOf(LogMrXMove(logEntry, ticketUsedFinal, destinationFinal));
 					// takes used ticket away from Mr X by returning a new Mr X without this ticket
 					// Q - what happens to old Mr X?
 					Player newMrXUsedTicket  = mrX.use(ticketUsedFinal);
@@ -286,10 +286,10 @@ public final class MyGameStateFactory implements Factory<GameState> {
 					List<LogEntry> logEntryFirstMove;
 
 					// add their first move into the log
-					logEntryFirstMove = SingleMoveLogMrXLog(logEntry, ticketUsedIntermediate, destinationIntermediate);
+					logEntryFirstMove = LogMrXMove(logEntry, ticketUsedIntermediate, destinationIntermediate);
 
 					// add their second move into the log
-					logEntryFinal = ImmutableList.copyOf(SingleMoveLogMrXLog(logEntryFirstMove,ticketUsedFinal, destinationFinal));
+					logEntryFinal = ImmutableList.copyOf(LogMrXMove(logEntryFirstMove,ticketUsedFinal, destinationFinal));
 
 					// create new Mr X objects as previously
 					// Q - what happens to the old Mr X objects?
