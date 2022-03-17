@@ -226,7 +226,9 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			// is not what houses moves
 			List<LogEntry> checking = new ArrayList<>(logEntry);
 			System.out.println(this.setup.moves);
-			boolean revealMove = this.setup.moves.get(getMrXTravelLog().size());
+			System.out.println(getMrXTravelLog().size());
+			System.out.println(this.setup.moves.get(getMrXTravelLog().size()));
+			boolean revealMove = this.setup.moves.get(checking.size());
 			LogEntry myNewLogEntry;
 			if(revealMove) {
 				myNewLogEntry = LogEntry.reveal(ticketUsed, destination);
@@ -239,7 +241,6 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			for (LogEntry entry : checking) {
 				System.out.println(entry);
 			}
-
 			return checking;
 		}
 
@@ -304,8 +305,10 @@ public final class MyGameStateFactory implements Factory<GameState> {
 					// Q - what happens to the old Mr X objects?
 					Player newMrXUsedTicket1  = mrX.use(ticketUsedIntermediate);
 					Player newMrXUsedTicket2  = newMrXUsedTicket1.use(ticketUsedFinal);
-					newMrXChangedLoc =  newMrXUsedTicket2.at(destinationFinal);
+					Player newMrXUsedDouble = newMrXUsedTicket2.use(ScotlandYard.Ticket.DOUBLE);
+					newMrXChangedLoc =  newMrXUsedDouble.at(destinationFinal);
 				}
+				System.out.println(newMrXChangedLoc.tickets());
 				// change to detectives turn means remove Mr X from remaining
 				Set<Piece> remainingUpdated = remaining.stream().filter(d -> !d.isMrX()).collect(Collectors.toSet());
 				//remainingUpdated.add(detectives.get(0).piece());
