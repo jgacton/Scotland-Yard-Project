@@ -120,14 +120,31 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		@Override
 		public ImmutableSet<Piece> getWinner() {
 			Set<Piece> winners = new HashSet<>();
-			for (Player detective : detectives) {
+			boolean detectiveWin = false;
+			for(Player detective : detectives) {
+				if (detective.location() == mrX.location()) {
+					detectiveWin = true;
+					break;
+				}
+			}
+			if(detectiveWin) {
+				Set<Move> empty = Collections.emptySet();
+				this.moves = ImmutableSet.copyOf(empty);
+				Set<Piece> winnersCopy = detectives.stream().map(Player::piece).collect(Collectors.toSet());
+				System.out.println("winnersCopy");
+				System.out.println(winnersCopy);
+				System.out.println("winnersCopy2");
+
+				return ImmutableSet.copyOf(detectives.stream().map(Player::piece).collect(Collectors.toSet()));
+			}
+			/* for (Player detective : detectives) {
 				if (detective.hasAtLeast(ScotlandYard.Ticket.UNDERGROUND, 4) ||
 						detective.hasAtLeast(ScotlandYard.Ticket.BUS, 8) ||
 						detective.hasAtLeast(ScotlandYard.Ticket.TAXI, 11)) {
 					return ImmutableSet.copyOf(winners);
 				}
-			}
-			return null;
+			}*/
+			return ImmutableSet.copyOf(winners);
 		}
 
 		private static Set<Move> makeSingleMoves(GameSetup setup, List<Player> detectives, Player player, int source){
