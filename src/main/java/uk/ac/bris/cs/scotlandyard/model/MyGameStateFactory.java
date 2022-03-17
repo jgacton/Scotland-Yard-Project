@@ -225,15 +225,17 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			// adds a new log entry to the log based on if move hidden or not
 			// is not what houses moves
 			List<LogEntry> checking = new ArrayList<>(logEntry);
-			if(this.setup.moves.stream().findFirst().equals(true)) {
-				LogEntry myNewLogEntry = LogEntry.reveal(ticketUsed, destination);
-				checking.add(myNewLogEntry);
+			System.out.println(this.setup.moves);
+			boolean revealMove = this.setup.moves.get(getMrXTravelLog().size());
+			LogEntry myNewLogEntry;
+			if(revealMove) {
+				myNewLogEntry = LogEntry.reveal(ticketUsed, destination);
 				//logEntry.add(LogEntry.reveal(ticketUsed, destination));
 			}
 			else {
-				LogEntry myNewLogEntry = LogEntry.hidden(ticketUsed);
-				checking.add(myNewLogEntry);
-				}
+				myNewLogEntry = LogEntry.hidden(ticketUsed);
+			}
+			checking.add(myNewLogEntry);
 			for (LogEntry entry : checking) {
 				System.out.println(entry);
 			}
@@ -246,8 +248,8 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		public GameState advance(Move move) {
 
 			// stores a new log entry with the added move
-			ImmutableList<LogEntry> logEntryFinal = ImmutableList.of();
-			List<LogEntry> logEntry = List.copyOf(this.log);
+			//ImmutableList<LogEntry> logEntryFinal = ImmutableList.of();
+			//List<LogEntry> logEntry = List.copyOf(this.log);
 
 			if(!moves.contains(move)) throw new IllegalArgumentException("Illegal move: "+move);
 
@@ -264,10 +266,15 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			Move.Visitor<Boolean> ifIsDouble = new Move.FunctionalVisitor<>((x -> false), (x -> true));
 			boolean isDouble = move.accept(ifIsDouble);
 			if(move.commencedBy().isMrX()) {
+				// stores a new log entry with the added move
+				ImmutableList<LogEntry> logEntryFinal = ImmutableList.of();
+				List<LogEntry> logEntry = List.copyOf(this.log);
 				Player newMrXChangedLoc;
 				if(!isDouble) {
 					// enter the move into the log
 					logEntryFinal = ImmutableList.copyOf(LogMrXMove(logEntry, ticketUsedFinal, destinationFinal));
+					System.out.println("after log entry final done and not double");
+					System.out.println(logEntryFinal);
 					// takes used ticket away from Mr X by returning a new Mr X without this ticket
 					// Q - what happens to old Mr X?
 					Player newMrXUsedTicket  = mrX.use(ticketUsedFinal);
@@ -306,6 +313,8 @@ public final class MyGameStateFactory implements Factory<GameState> {
 					remainingUpdated.add(detective.piece());
 				}
 				// little confused on this part
+				System.out.println("after log entry final done and not double and before returning");
+				System.out.println(logEntryFinal);
 				return new MyGameState(setup, ImmutableSet.copyOf(remainingUpdated), logEntryFinal, newMrXChangedLoc, detectives);
 				// returns a new game state and swaps to the detective turn
 			}
@@ -335,7 +344,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 				// update detectives and replace cD with cDTL
 				List<Player> detectivesUpdated = detectives.stream().filter(d -> !d.equals(currentDetective)).collect(Collectors.toList());
 				detectivesUpdated.add(currentDetectiveTickLost);
-				return new MyGameState(setup, ImmutableSet.copyOf(remainingUpdated), logEntryFinal, newMrX, detectivesUpdated);
+				return new MyGameState(setup, ImmutableSet.copyOf(remainingUpdated), this.log, newMrX, detectivesUpdated);
 			}
 		}
 	}
