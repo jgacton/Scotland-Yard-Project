@@ -24,7 +24,8 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		private final Player mrX;
 		private final List<Player> detectives;
 		private ImmutableSet<Move> moves;
-		//private ImmutableSet<Piece> winner;
+		private ImmutableSet<Piece> winner; // Only gives a warning because we haven't implemented anything involving
+		// this yet
 
 		private MyGameState(
 				final GameSetup setup,
@@ -41,6 +42,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 			if(remaining.contains(mrX.piece())) {
 				Set<Move> singleMoves = ImmutableSet.copyOf(makeSingleMoves(this.setup, this.detectives, this.mrX, mrX.location()));
+
 				if(mrX.has(ScotlandYard.Ticket.DOUBLE) && setup.moves.size() > 1) {
 					Set<Move> doubleMoves = ImmutableSet.copyOf(makeDoubleMoves(this.setup, this.detectives, this.mrX, mrX.location()));
 					this.moves = ImmutableSet.<Move>builder().addAll(singleMoves).addAll(doubleMoves).build();
@@ -49,6 +51,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 				}
 			} else {
 				Set<Move> singleMoves = new HashSet<>();
+
 				for(Player detective : detectives) {
 					if(remaining.contains(detective.piece())) {
 						singleMoves.addAll(makeSingleMoves(this.setup, this.detectives, detective, detective.location()));
@@ -74,6 +77,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			for (Player detective : detectives) {
 				playersMutable.add(detective.piece());
 			}
+
 			return ImmutableSet.copyOf(playersMutable);
 		}
 
@@ -85,6 +89,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 					return Optional.of(player.location());
 				}
 			}
+
 			return Optional.empty();
 		}
 
@@ -92,15 +97,19 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		@Override
 		public Optional<TicketBoard> getPlayerTickets(Piece piece) {
 			ImmutableMap<ScotlandYard.Ticket, Integer> tickets = null;
+
 			if(mrX.piece().equals(piece)) {
 				tickets = mrX.tickets();
 			}
+
 			for (Player detective : detectives) {
 				if (detective.piece().equals(piece)) {
 					tickets = detective.tickets();
 				}
 			}
-			if(tickets == null) {return Optional.empty();}
+
+			if(tickets == null) return Optional.empty();
+
 			ImmutableMap<ScotlandYard.Ticket, Integer> finalTickets = tickets;
 			return Optional.of(finalTickets::get);
 		}
@@ -116,12 +125,14 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		public ImmutableSet<Piece> getWinner() {
 			Set<Piece> winners = new HashSet<>();
 			boolean detectiveWin = false;
+
 			for(Player detective : detectives) {
 				if (detective.location() == mrX.location()) {
 					detectiveWin = true;
 					break;
 				}
 			}
+
 			if(detectiveWin) {
 				Set<Move> empty = Collections.emptySet();
 				this.moves = ImmutableSet.copyOf(empty);
@@ -232,16 +243,16 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			System.out.println(this.setup.moves.get(getMrXTravelLog().size()));
 			boolean revealMove = this.setup.moves.get(checking.size());
 			LogEntry myNewLogEntry;
-			if(revealMove) {
-				myNewLogEntry = LogEntry.reveal(ticketUsed, destination);
-			}
-			else {
-				myNewLogEntry = LogEntry.hidden(ticketUsed);
-			}
+
+			if(revealMove) { myNewLogEntry = LogEntry.reveal(ticketUsed, destination); }
+			else { myNewLogEntry = LogEntry.hidden(ticketUsed); }
+
 			checking.add(myNewLogEntry);
+
 			for (LogEntry entry : checking) {
 				System.out.println(entry);
 			}
+
 			return checking;
 		}
 
@@ -263,19 +274,23 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			// gets if a move made is a double move or not
 			Move.Visitor<Boolean> ifIsDouble = new Move.FunctionalVisitor<>((x -> false), (x -> true));
 			boolean isDouble = move.accept(ifIsDouble);
+
 			if(move.commencedBy().isMrX()) {
 				// stores a new log entry with the added move
 				ImmutableList<LogEntry> logEntryFinal;
 				List<LogEntry> logEntry = List.copyOf(this.log);
 				Player newMrXChangedLoc;
+
 				if(!isDouble) {
 					// enter the move into the log
 					logEntryFinal = ImmutableList.copyOf(LogMrXMove(logEntry, ticketUsedFinal, destinationFinal));
 					System.out.println("after log entry final done and not double");
 					System.out.println(logEntryFinal);
+
 					// takes used ticket away from Mr X by returning a new Mr X without this ticket
 					// Q - what happens to old Mr X?
 					Player newMrXUsedTicket  = mrX.use(ticketUsedFinal);
+
 					// moves Mr X to their new destination by returning a new Mr X at this destination
 					// Q - what happens to old Mr Xs?
 					newMrXChangedLoc =  newMrXUsedTicket.at(destinationFinal);
@@ -306,32 +321,42 @@ public final class MyGameStateFactory implements Factory<GameState> {
 					newMrXChangedLoc =  newMrXUsedDouble.at(destinationFinal);
 				}
 				System.out.println(newMrXChangedLoc.tickets());
+
 				// change to detectives turn means remove Mr X from remaining
 				Set<Piece> remainingUpdated = remaining.stream().filter(d -> !d.isMrX()).collect(Collectors.toSet());
+
 				//remainingUpdated.add(detectives.get(0).piece());
 				for(Player detective : detectives) {
 					remainingUpdated.add(detective.piece());
 				}
+
 				// little confused on this part
 				System.out.println("after log entry final done and not double and before returning");
 				System.out.println(logEntryFinal);
-				return new MyGameState(setup, ImmutableSet.copyOf(remainingUpdated), logEntryFinal, newMrXChangedLoc, detectives);
+
 				// returns a new game state and swaps to the detective turn
+				return new MyGameState(setup, ImmutableSet.copyOf(remainingUpdated), logEntryFinal, newMrXChangedLoc, detectives);
 			}
 
 			else {
 				// get the given detective piece
 				Player currentDetective = detectives.stream().filter(d -> d.piece().equals(move.commencedBy())).findFirst().orElseThrow();
+
 				// returns detective at the new location
 				Player currentDetectiveNewLoc = currentDetective.at(destinationFinal);
+
 				// returns detective with one less ticket
 				Player currentDetectiveTickLost = currentDetectiveNewLoc.use(ticketUsedFinal);
+
 				// returns a Mr X with the ticket
 				Player newMrX = mrX.give(ticketUsedFinal);
+
 				// ensuring particular detective does not move again in this round
 				Set<Piece> remainingUpdated;
+
 				// update rU to not have cD
 				remainingUpdated = remaining.stream().filter(d -> !d.equals(currentDetectiveTickLost.piece())).collect(Collectors.toSet());
+
 				// checks if no moves left for detective, then it is mrX turn
 				if(remainingUpdated.isEmpty()) {
 					remainingUpdated.add(mrX.piece());
@@ -339,6 +364,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 						remainingUpdated.add(detective.piece());
 					}
 				}
+
 				// update detectives and replace cD with cDTL
 				List<Player> detectivesUpdated = detectives.stream().filter(d -> !d.equals(currentDetective)).collect(Collectors.toList());
 				detectivesUpdated.add(currentDetectiveTickLost);
@@ -347,10 +373,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		}
 	}
 
-	@Nonnull @Override public GameState build(
-			GameSetup setup,
-			Player mrX,
-			ImmutableList<Player> detectives) {
+	@Nonnull @Override public GameState build(GameSetup setup, Player mrX, ImmutableList<Player> detectives) {
 
 		if(setup.graph.nodes().size() == 0) throw new IllegalArgumentException();
 		if(setup.moves.isEmpty()) throw new IllegalArgumentException();
@@ -365,6 +388,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 				}
 			}
 		}
+
 		for(int i = 0; i < detectives.size(); i++) {
 			if(detectives.get(i).has(ScotlandYard.Ticket.DOUBLE) || (detectives.get(i).has(ScotlandYard.Ticket.SECRET))) {
 				throw new IllegalArgumentException();
@@ -379,5 +403,4 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 		return new MyGameState(setup, ImmutableSet.copyOf(remaining), ImmutableList.of(), mrX, detectives);
 	}
-
 }
