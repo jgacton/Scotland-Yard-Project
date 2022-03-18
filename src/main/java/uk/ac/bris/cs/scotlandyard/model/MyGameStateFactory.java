@@ -17,14 +17,14 @@ import java.util.stream.Collectors;
  * Stage 1: Complete this class
  */
 public final class MyGameStateFactory implements Factory<GameState> {
-	private final class MyGameState implements GameState {
+	private static final class MyGameState implements GameState {
 		private final GameSetup setup;
 		private final ImmutableSet<Piece> remaining;
 		private final ImmutableList<LogEntry> log;
 		private final Player mrX;
 		private final List<Player> detectives;
 		private ImmutableSet<Move> moves;
-		private ImmutableSet<Piece> winner;
+		//private ImmutableSet<Piece> winner;
 
 		private MyGameState(
 				final GameSetup setup,
@@ -56,7 +56,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 				}
 				this.moves = ImmutableSet.<Move>builder().addAll(singleMoves).build();
 			}
-			System.out.println(remaining.toString());
+			System.out.println(remaining);
 		}
 
 		@Nonnull
@@ -80,12 +80,12 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		@Nonnull
 		@Override
 		public Optional<Integer> getDetectiveLocation(Piece.Detective detective) {
-			for(int i =0; i<detectives.size(); i++) {
-				if(detectives.get(i).piece().equals(detective)) {
-					return Optional.of(detectives.get(i).location());
+			for (Player player : detectives) {
+				if (player.piece().equals(detective)) {
+					return Optional.of(player.location());
 				}
 			}
-			return Optional.ofNullable(null);
+			return Optional.empty();
 		}
 
 		@Nonnull
@@ -95,19 +95,14 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			if(mrX.piece().equals(piece)) {
 				tickets = mrX.tickets();
 			}
-			for(int i =0; i<detectives.size(); i++) {
-				if(detectives.get(i).piece().equals(piece)) {
-					tickets = detectives.get(i).tickets();
+			for (Player detective : detectives) {
+				if (detective.piece().equals(piece)) {
+					tickets = detective.tickets();
 				}
 			}
-			if(tickets == null) {return Optional.ofNullable(null);}
+			if(tickets == null) {return Optional.empty();}
 			ImmutableMap<ScotlandYard.Ticket, Integer> finalTickets = tickets;
-			return Optional.of(new TicketBoard() {
-				@Override
-				public int getCount(@Nonnull ScotlandYard.Ticket ticket) {
-					return finalTickets.get(ticket);
-				}
-			});
+			return Optional.of(finalTickets::get);
 		}
 
 		@Nonnull
@@ -137,16 +132,18 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 				return ImmutableSet.copyOf(detectives.stream().map(Player::piece).collect(Collectors.toSet()));
 			}
-			/* for (Player detective : detectives) {
-				if (detective.hasAtLeast(ScotlandYard.Ticket.UNDERGROUND, 4) ||
-						detective.hasAtLeast(ScotlandYard.Ticket.BUS, 8) ||
-						detective.hasAtLeast(ScotlandYard.Ticket.TAXI, 11)) {
-					return ImmutableSet.copyOf(winners);
-				}
-			}*/
 			return ImmutableSet.copyOf(winners);
 		}
 
+		// Returns true if the given node is unoccupied by a detective and false otherwise
+		private static boolean nodeUnOccupied(List<Player> detectives, int node) {
+			for (Player detective : detectives) {
+				if (detective.location() == node) return false;
+			}
+			return true;
+		}
+
+		// Finds and constructs all possible single moves for a given player
 		private static Set<Move> makeSingleMoves(GameSetup setup, List<Player> detectives, Player player, int source){
 
 			Set<Move> singleMoves = new HashSet<>();
@@ -154,48 +151,37 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			for(int destination : setup.graph.adjacentNodes(source)) {
 
 				// Generates single moves for normal tickets (Taxi, Bus, Train)
-				for(ScotlandYard.Transport t : setup.graph.edgeValueOrDefault(source, destination, ImmutableSet.of()) ) {
-					if(player.has(t.requiredTicket()) && !checkNodeOccupied(detectives, destination)) {
+				for(ScotlandYard.Transport t : Objects.requireNonNull(setup.graph.edgeValueOrDefault(source, destination, ImmutableSet.of()))) {
+					if(player.has(t.requiredTicket()) && nodeUnOccupied(detectives, destination)) {
 						Move.SingleMove move = new Move.SingleMove(player.piece(), source, t.requiredTicket(), destination);
 						singleMoves.add(move);
 					}
 				}
 
 				// Generates single moves for secret tickets
-				for(ScotlandYard.Transport t : setup.graph.edgeValueOrDefault(source, destination, ImmutableSet.of()) ) {
-					if(player.has(ScotlandYard.Ticket.SECRET) && !checkNodeOccupied(detectives, destination)) {
-						Move.SingleMove move = new Move.SingleMove(player.piece(), source, ScotlandYard.Ticket.SECRET, destination);
-						singleMoves.add(move);
-					}
+				if(player.has(ScotlandYard.Ticket.SECRET) && nodeUnOccupied(detectives, destination)) {
+					Move.SingleMove move = new Move.SingleMove(player.piece(), source, ScotlandYard.Ticket.SECRET, destination);
+					singleMoves.add(move);
 				}
 			}
-
 			return singleMoves;
 		}
 
-		private static boolean checkNodeOccupied(List<Player> detectives, int node) {
-			for(int i = 0; i < detectives.size(); i++) {
-				if(detectives.get(i).location() == node) return true;
-			}
-			return false;
-		}
-
+		// Finds and constructs all possible double moves for a given player
 		private static Set<Move> makeDoubleMoves(GameSetup setup, List<Player> detectives, Player player, int source){
 
 			Set<Move> doubleMoves = new HashSet<>();
 
 			for(int destination1 : setup.graph.adjacentNodes(source)) {
-
-				if(!checkNodeOccupied(detectives, destination1)) {
+				if(nodeUnOccupied(detectives, destination1)) {
 
 					for(int destination2 : setup.graph.adjacentNodes(destination1)) {
+						if(nodeUnOccupied(detectives, destination2)) {
 
-						if(!checkNodeOccupied(detectives, destination2)) {
-
-							for(ScotlandYard.Transport t1 : setup.graph.edgeValueOrDefault(source, destination1, ImmutableSet.of())) {
+							for(ScotlandYard.Transport t1 : Objects.requireNonNull(setup.graph.edgeValueOrDefault(source, destination1, ImmutableSet.of()))) {
 								if(player.has(t1.requiredTicket()) || player.has(ScotlandYard.Ticket.SECRET)) {
 
-									for(ScotlandYard.Transport t2 : setup.graph.edgeValueOrDefault(destination1, destination2, ImmutableSet.of())) {
+									for(ScotlandYard.Transport t2 : Objects.requireNonNull(setup.graph.edgeValueOrDefault(destination1, destination2, ImmutableSet.of()))) {
 										if(player.has(t2.requiredTicket()) || player.has(ScotlandYard.Ticket.SECRET)) {
 
 											if(t1.requiredTicket().equals(t2.requiredTicket()) && player.hasAtLeast(t1.requiredTicket(), 2)) {
@@ -228,7 +214,6 @@ public final class MyGameStateFactory implements Factory<GameState> {
 					}
 				}
 			}
-
 			return doubleMoves;
 		}
 
@@ -238,9 +223,9 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			return this.moves;
 		}
 
+		// Checks if the current MrX move is hidden or not, and adds the corresponding log entry, or multiple log
+		// entries if MrX uses a double move.
 		private List<LogEntry> LogMrXMove(List<LogEntry> logEntry, ScotlandYard.Ticket ticketUsed, int destination) {
-			// adds a new log entry to the log based on if move hidden or not
-			// is not what houses moves
 			List<LogEntry> checking = new ArrayList<>(logEntry);
 			System.out.println(this.setup.moves);
 			System.out.println(getMrXTravelLog().size());
@@ -249,7 +234,6 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			LogEntry myNewLogEntry;
 			if(revealMove) {
 				myNewLogEntry = LogEntry.reveal(ticketUsed, destination);
-				//logEntry.add(LogEntry.reveal(ticketUsed, destination));
 			}
 			else {
 				myNewLogEntry = LogEntry.hidden(ticketUsed);
@@ -264,10 +248,6 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		@Nonnull
 		@Override
 		public GameState advance(Move move) {
-
-			// stores a new log entry with the added move
-			//ImmutableList<LogEntry> logEntryFinal = ImmutableList.of();
-			//List<LogEntry> logEntry = List.copyOf(this.log);
 
 			if(!moves.contains(move)) throw new IllegalArgumentException("Illegal move: "+move);
 
@@ -285,7 +265,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			boolean isDouble = move.accept(ifIsDouble);
 			if(move.commencedBy().isMrX()) {
 				// stores a new log entry with the added move
-				ImmutableList<LogEntry> logEntryFinal = ImmutableList.of();
+				ImmutableList<LogEntry> logEntryFinal;
 				List<LogEntry> logEntry = List.copyOf(this.log);
 				Player newMrXChangedLoc;
 				if(!isDouble) {
@@ -341,9 +321,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 			else {
 				// get the given detective piece
-				Optional<Player> currentDetectiveTurn = detectives.stream().filter(d -> d.piece().equals(move.commencedBy())).findFirst();
-				// checking ifPresent lost on
-				Player currentDetective = currentDetectiveTurn.get();
+				Player currentDetective = detectives.stream().filter(d -> d.piece().equals(move.commencedBy())).findFirst().orElseThrow();
 				// returns detective at the new location
 				Player currentDetectiveNewLoc = currentDetective.at(destinationFinal);
 				// returns detective with one less ticket
@@ -376,8 +354,6 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 		if(setup.graph.nodes().size() == 0) throw new IllegalArgumentException();
 		if(setup.moves.isEmpty()) throw new IllegalArgumentException();
-		if(detectives.equals(null)) throw new NullPointerException();
-		if(mrX.equals(null)) throw new NullPointerException();
 
 		for(int i=0; i<detectives.size()-1; i++) {
 			for(int j =i+1; j<detectives.size(); j++) {
