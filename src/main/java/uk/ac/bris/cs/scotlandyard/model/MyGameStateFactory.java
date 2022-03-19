@@ -120,27 +120,35 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			return this.log;
 		}
 
+		// sees if Mr X lands on a detective and if so detective wins
+		private boolean checkMrXOnDetective() {
+			for(Player detective : detectives) {
+				if (detective.location() == mrX.location()) {
+					return true;
+				}
+			}
+			return false;
+		}
+
+		private boolean checkMrXCornered() {
+			// get destination of Mr X move
+			// if equals detective destination return true
+			// focus on single moves for now
+			// get all available moves for Mr X
+			Set<Move> currentAvailableMovesMrX = this.moves.stream().filter(m -> m.commencedBy().equals(mrX.piece())).collect(Collectors.toSet());
+			return currentAvailableMovesMrX.isEmpty();
+		}
+
 		@Nonnull
 		@Override
 		public ImmutableSet<Piece> getWinner() {
 			Set<Piece> winners = new HashSet<>();
-			boolean detectiveWin = false;
-
-			for(Player detective : detectives) {
-				if (detective.location() == mrX.location()) {
-					detectiveWin = true;
-					break;
-				}
-			}
-
-			if(detectiveWin) {
+			//boolean detectiveWin = false;
+			boolean detectiveWinMrXCaptured = checkMrXOnDetective();
+			boolean detectiveWinMrXCorner = checkMrXCornered();
+			if(detectiveWinMrXCaptured || detectiveWinMrXCorner) {
 				Set<Move> empty = Collections.emptySet();
 				this.moves = ImmutableSet.copyOf(empty);
-				Set<Piece> winnersCopy = detectives.stream().map(Player::piece).collect(Collectors.toSet());
-				System.out.println("winnersCopy");
-				System.out.println(winnersCopy);
-				System.out.println("winnersCopy2");
-
 				return ImmutableSet.copyOf(detectives.stream().map(Player::piece).collect(Collectors.toSet()));
 			}
 			return ImmutableSet.copyOf(winners);
