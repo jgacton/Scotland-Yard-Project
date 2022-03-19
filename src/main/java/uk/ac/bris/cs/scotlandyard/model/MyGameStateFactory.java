@@ -145,6 +145,17 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			Set<Move> empty = Collections.emptySet();
 			this.moves = ImmutableSet.copyOf(empty);
 		}
+		private boolean checkDetectiveUnableToGet() {
+			for(Player detective : detectives) {
+				if(detective.hasAtLeast(ScotlandYard.Ticket.BUS, 1) ||
+				detective.hasAtLeast(ScotlandYard.Ticket.TAXI, 1)
+				|| detective.hasAtLeast(ScotlandYard.Ticket.UNDERGROUND, 1)) {
+					return false;
+				}
+			}
+			return true;
+		}
+
 		@Nonnull
 		@Override
 		public ImmutableSet<Piece> getWinner() {
@@ -154,12 +165,15 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			boolean detectiveWinMrXCorner = checkMrXCornered();
 			if(detectiveWinMrXCaptured || detectiveWinMrXCorner) {
 				emptyGetMoves();
+				this.winner = ImmutableSet.copyOf(detectives.stream().map(Player::piece).collect(Collectors.toSet()));
 				return ImmutableSet.copyOf(detectives.stream().map(Player::piece).collect(Collectors.toSet()));
 			}
 			else{
 				boolean mrXWinsLogFilled = mrXFillsLog();
-				if(mrXWinsLogFilled) {
+				boolean detectiveNoLongerPlay = checkDetectiveUnableToGet();
+				if(mrXWinsLogFilled || detectiveNoLongerPlay) {
 					emptyGetMoves();
+					this.winner = ImmutableSet.of(mrX.piece());
 					return ImmutableSet.of(mrX.piece());
 				}
 			}
