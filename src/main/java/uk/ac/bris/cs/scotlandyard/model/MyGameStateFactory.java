@@ -148,8 +148,8 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		private boolean checkDetectiveUnableToGet() {
 			for(Player detective : detectives) {
 				if(detective.hasAtLeast(ScotlandYard.Ticket.BUS, 1) ||
-				detective.hasAtLeast(ScotlandYard.Ticket.TAXI, 1)
-				|| detective.hasAtLeast(ScotlandYard.Ticket.UNDERGROUND, 1)) {
+						detective.hasAtLeast(ScotlandYard.Ticket.TAXI, 1)
+						|| detective.hasAtLeast(ScotlandYard.Ticket.UNDERGROUND, 1)) {
 					return false;
 				}
 			}
@@ -160,21 +160,20 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		@Override
 		public ImmutableSet<Piece> getWinner() {
 			Set<Piece> winners = new HashSet<>();
-			//boolean detectiveWin = false;
-			boolean detectiveWinMrXCaptured = checkMrXOnDetective();
-			boolean detectiveWinMrXCorner = checkMrXCornered();
-			if(detectiveWinMrXCaptured || detectiveWinMrXCorner) {
+			boolean mrXWinsLogFilled = mrXFillsLog();
+			boolean detectiveNoLongerPlay = checkDetectiveUnableToGet();
+			if(mrXWinsLogFilled || detectiveNoLongerPlay) {
 				emptyGetMoves();
-				this.winner = ImmutableSet.copyOf(detectives.stream().map(Player::piece).collect(Collectors.toSet()));
-				return ImmutableSet.copyOf(detectives.stream().map(Player::piece).collect(Collectors.toSet()));
+				this.winner = ImmutableSet.of(mrX.piece());
+				return ImmutableSet.of(mrX.piece());
 			}
 			else{
-				boolean mrXWinsLogFilled = mrXFillsLog();
-				boolean detectiveNoLongerPlay = checkDetectiveUnableToGet();
-				if(mrXWinsLogFilled || detectiveNoLongerPlay) {
+				boolean detectiveWinMrXCaptured = checkMrXOnDetective();
+				boolean detectiveWinMrXCorner = checkMrXCornered();
+				if(detectiveWinMrXCaptured || detectiveWinMrXCorner) {
 					emptyGetMoves();
-					this.winner = ImmutableSet.of(mrX.piece());
-					return ImmutableSet.of(mrX.piece());
+					this.winner = ImmutableSet.copyOf(detectives.stream().map(Player::piece).collect(Collectors.toSet()));
+					return ImmutableSet.copyOf(detectives.stream().map(Player::piece).collect(Collectors.toSet()));
 				}
 			}
 			return ImmutableSet.copyOf(winners);
