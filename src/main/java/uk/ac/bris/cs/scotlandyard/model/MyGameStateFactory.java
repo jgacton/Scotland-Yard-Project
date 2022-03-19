@@ -138,7 +138,13 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			Set<Move> currentAvailableMovesMrX = this.moves.stream().filter(m -> m.commencedBy().equals(mrX.piece())).collect(Collectors.toSet());
 			return currentAvailableMovesMrX.isEmpty();
 		}
-
+		private boolean mrXFillsLog() {
+			return this.log.size() == this.setup.moves.size();
+		}
+		private void emptyGetMoves(){
+			Set<Move> empty = Collections.emptySet();
+			this.moves = ImmutableSet.copyOf(empty);
+		}
 		@Nonnull
 		@Override
 		public ImmutableSet<Piece> getWinner() {
@@ -147,9 +153,15 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			boolean detectiveWinMrXCaptured = checkMrXOnDetective();
 			boolean detectiveWinMrXCorner = checkMrXCornered();
 			if(detectiveWinMrXCaptured || detectiveWinMrXCorner) {
-				Set<Move> empty = Collections.emptySet();
-				this.moves = ImmutableSet.copyOf(empty);
+				emptyGetMoves();
 				return ImmutableSet.copyOf(detectives.stream().map(Player::piece).collect(Collectors.toSet()));
+			}
+			else{
+				boolean mrXWinsLogFilled = mrXFillsLog();
+				if(mrXWinsLogFilled) {
+					emptyGetMoves();
+					return ImmutableSet.of(mrX.piece());
+				}
 			}
 			return ImmutableSet.copyOf(winners);
 		}
