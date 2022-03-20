@@ -59,7 +59,8 @@ public final class MyGameStateFactory implements Factory<GameState> {
 				}
 				this.moves = ImmutableSet.<Move>builder().addAll(singleMoves).build();
 			}
-			System.out.println(remaining);
+			//System.out.println(remaining);
+			System.out.println(this.moves);
 		}
 
 		@Nonnull
@@ -122,6 +123,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 		// sees if Mr X lands on a detective and if so detective wins
 		private boolean checkMrXOnDetective() {
+			// if Mr X location is detective location they have accidentally landed on a detective
 			for(Player detective : detectives) {
 				if (detective.location() == mrX.location()) {
 					return true;
@@ -131,14 +133,14 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		}
 
 		private boolean checkMrXCornered() {
-			// get destination of Mr X move
-			// if equals detective destination return true
-			// focus on single moves for now
-			// get all available moves for Mr X
-			Set<Move> currentAvailableMovesMrX = this.moves.stream().filter(m -> m.commencedBy().equals(mrX.piece())).collect(Collectors.toSet());
-			return currentAvailableMovesMrX.isEmpty();
+			// gets all the single moves of Mr X
+			Set<Move> singleMovesMrX = makeSingleMoves(setup, detectives, mrX, mrX.location());
+			System.out.println(singleMovesMrX);
+			// if there are single moves, Mr X can make a move and is not cornered
+			return singleMovesMrX.isEmpty();
 		}
 		private boolean mrXFillsLog() {
+			// checks if the size of true/false of moves equals the size of the log
 			return this.log.size() == this.setup.moves.size();
 		}
 		private void emptyGetMoves(){
@@ -146,34 +148,66 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			this.moves = ImmutableSet.copyOf(empty);
 		}
 		private boolean checkDetectiveUnableToGet() {
+			// stores number of detectives unable to make a move
+			int numberOfDetectivesUnable = 0;
+			// for each detective checks if they have at least one of each ticket
 			for(Player detective : detectives) {
 				if(detective.hasAtLeast(ScotlandYard.Ticket.BUS, 1) ||
 						detective.hasAtLeast(ScotlandYard.Ticket.TAXI, 1)
 						|| detective.hasAtLeast(ScotlandYard.Ticket.UNDERGROUND, 1)) {
+					// if the detective does then a move can be made, so false is returned
 					return false;
 				}
+				// add the number of detectives unable to make a move to this list
+				else {numberOfDetectivesUnable = numberOfDetectivesUnable + 1;}
 			}
-			return true;
+			// if the number of detectives unable to make a move are all the detectives
+			// then no detective can make a move and true is returned
+			// otherwise some can make a move and false is returned
+			return numberOfDetectivesUnable == detectives.size();
 		}
 
 		@Nonnull
 		@Override
 		public ImmutableSet<Piece> getWinner() {
 			Set<Piece> winners = new HashSet<>();
+			// check whether Mr X fills all his log
 			boolean mrXWinsLogFilled = mrXFillsLog();
+			// check whether detectives have run out of tickets
 			boolean detectiveNoLongerPlay = checkDetectiveUnableToGet();
+			// checks if no detectives can make a move or if the log is filled
+			// both indicate that Mr X wins
 			if(mrXWinsLogFilled || detectiveNoLongerPlay) {
+				// empty all the available moves
 				emptyGetMoves();
+				// winner stores Mr X
 				this.winner = ImmutableSet.of(mrX.piece());
 				return ImmutableSet.of(mrX.piece());
 			}
 			else{
+				// Mr X is clearly not the winner
+				// check if Mr X accidentally lands on a detective
 				boolean detectiveWinMrXCaptured = checkMrXOnDetective();
+				// check if Mr X is cornered by detectives
 				boolean detectiveWinMrXCorner = checkMrXCornered();
+				// if Mr X captured or cornered detectives win
 				if(detectiveWinMrXCaptured || detectiveWinMrXCorner) {
 					emptyGetMoves();
 					this.winner = ImmutableSet.copyOf(detectives.stream().map(Player::piece).collect(Collectors.toSet()));
 					return ImmutableSet.copyOf(detectives.stream().map(Player::piece).collect(Collectors.toSet()));
+				}
+			}
+			// need to check if game still going
+			// if moves is empty and nobody wins indication of a new round
+			if(this.moves.isEmpty()) {
+				// so creates moves for Mr X
+				Set<Move> singleMoves = ImmutableSet.copyOf(makeSingleMoves(this.setup, this.detectives, this.mrX, mrX.location()));
+
+				if(mrX.has(ScotlandYard.Ticket.DOUBLE) && setup.moves.size() > 1) {
+					Set<Move> doubleMoves = ImmutableSet.copyOf(makeDoubleMoves(this.setup, this.detectives, this.mrX, mrX.location()));
+					this.moves = ImmutableSet.<Move>builder().addAll(singleMoves).addAll(doubleMoves).build();
+				} else {
+					this.moves = ImmutableSet.<Move>builder().addAll(singleMoves).build();
 				}
 			}
 			return ImmutableSet.copyOf(winners);
