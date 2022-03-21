@@ -60,7 +60,7 @@ public final class MyModelFactory implements Factory<Model> {
 		@Override
 		public void chooseMove(@Nonnull Move move) {
 			if(state.getWinner().isEmpty()) {
-				state.advance(move);
+				this.state = state.advance(move);
 				if(!state.getWinner().isEmpty()) {
 					for(Observer O : observers) {
 						O.onModelChanged(state, Observer.Event.GAME_OVER);

@@ -50,8 +50,6 @@ public final class MyGameStateFactory implements Factory<GameState> {
 				}
 				this.moves = ImmutableSet.<Move>builder().addAll(singleMoves).build();
 			}
-			//System.out.println(remaining);
-			System.out.println(this.moves);
 		}
 
 		private void createMrXMoves() {
@@ -137,7 +135,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		private boolean checkMrXCornered() {
 			// gets all the single moves of Mr X
 			Set<Move> singleMovesMrX = makeSingleMoves(setup, detectives, mrX, mrX.location());
-			System.out.println(singleMovesMrX);
+
 			// if there are single moves, Mr X can make a move and is not cornered
 			return singleMovesMrX.isEmpty();
 		}
@@ -298,9 +296,6 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		// entries if MrX uses a double move.
 		private List<LogEntry> LogMrXMove(List<LogEntry> logEntry, ScotlandYard.Ticket ticketUsed, int destination) {
 			List<LogEntry> checking = new ArrayList<>(logEntry);
-			System.out.println(this.setup.moves);
-			System.out.println(getMrXTravelLog().size());
-			System.out.println(this.setup.moves.get(getMrXTravelLog().size()));
 			boolean revealMove = this.setup.moves.get(checking.size());
 			LogEntry myNewLogEntry;
 
@@ -308,10 +303,6 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			else { myNewLogEntry = LogEntry.hidden(ticketUsed); }
 
 			checking.add(myNewLogEntry);
-
-			for (LogEntry entry : checking) {
-				System.out.println(entry);
-			}
 
 			return checking;
 		}
@@ -344,8 +335,6 @@ public final class MyGameStateFactory implements Factory<GameState> {
 				if(!isDouble) {
 					// enter the move into the log
 					logEntryFinal = ImmutableList.copyOf(LogMrXMove(logEntry, ticketUsedFinal, destinationFinal));
-					System.out.println("after log entry final done and not double");
-					System.out.println(logEntryFinal);
 
 					// takes used ticket away from Mr X by returning a new Mr X without this ticket
 					// Q - what happens to old Mr X?
@@ -380,19 +369,15 @@ public final class MyGameStateFactory implements Factory<GameState> {
 					Player newMrXUsedDouble = newMrXUsedTicket2.use(ScotlandYard.Ticket.DOUBLE);
 					newMrXChangedLoc =  newMrXUsedDouble.at(destinationFinal);
 				}
-				System.out.println(newMrXChangedLoc.tickets());
 
 				// change to detectives turn means remove Mr X from remaining
 				Set<Piece> remainingUpdated = remaining.stream().filter(d -> !d.isMrX()).collect(Collectors.toSet());
 
-				//remainingUpdated.add(detectives.get(0).piece());
 				for(Player detective : detectives) {
 					remainingUpdated.add(detective.piece());
 				}
 
 				// little confused on this part
-				System.out.println("after log entry final done and not double and before returning");
-				System.out.println(logEntryFinal);
 
 				// returns a new game state and swaps to the detective turn
 				return new MyGameState(setup, ImmutableSet.copyOf(remainingUpdated), logEntryFinal, newMrXChangedLoc, detectives);
