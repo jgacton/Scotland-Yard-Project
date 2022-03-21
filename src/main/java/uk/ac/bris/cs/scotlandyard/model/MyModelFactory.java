@@ -17,6 +17,11 @@ import java.util.stream.Collectors;
  */
 public final class MyModelFactory implements Factory<Model> {
 	private static final class MyModel implements Model {
+		public class NoSuchRegisteredObserver extends Exception {
+			public NoSuchRegisteredObserver(String errorMessage) {
+				super(errorMessage);
+			}
+		}
 		private MyGameStateFactory stateFactory;
 		private Board.GameState state;
 		private Set<Observer> observers = new HashSet<>();
@@ -34,11 +39,15 @@ public final class MyModelFactory implements Factory<Model> {
 
 		@Override
 		public void registerObserver(@Nonnull Observer observer) {
+			if(observer.equals(null)) throw new java.lang.NullPointerException();
+			if(this.observers.contains(observer)) throw new IllegalArgumentException();
 			this.observers.add(observer);
 		}
 
 		@Override
 		public void unregisterObserver(@Nonnull Observer observer) {
+			if(observer.equals(null)) throw new java.lang.NullPointerException();
+			if(!this.observers.contains(observer)) throw new IllegalArgumentException();
 			this.observers = this.observers.stream().filter(x -> !x.equals(observer)).collect(Collectors.toSet());
 		}
 
@@ -50,14 +59,20 @@ public final class MyModelFactory implements Factory<Model> {
 
 		@Override
 		public void chooseMove(@Nonnull Move move) {
-			state.advance(move);
-			if(!state.getWinner().isEmpty()) {
-				for(Observer O : observers) {
-					O.onModelChanged(state, Observer.Event.GAME_OVER);
+			if(state.getWinner().isEmpty()) {
+				state.advance(move);
+				if(!state.getWinner().isEmpty()) {
+					for(Observer O : observers) {
+						O.onModelChanged(state, Observer.Event.GAME_OVER);
+					}
+				} else {
+					for(Observer O : observers) {
+						O.onModelChanged(state, Observer.Event.MOVE_MADE);
+					}
 				}
 			} else {
 				for(Observer O : observers) {
-					O.onModelChanged(state, Observer.Event.MOVE_MADE);
+					O.onModelChanged(state, Observer.Event.GAME_OVER);
 				}
 			}
 		}
