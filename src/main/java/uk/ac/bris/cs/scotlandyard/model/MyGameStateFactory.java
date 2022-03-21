@@ -24,8 +24,6 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		private final Player mrX;
 		private final List<Player> detectives;
 		private ImmutableSet<Move> moves;
-		private ImmutableSet<Piece> winner; // Only gives a warning because we haven't implemented anything involving
-		// this yet
 
 		private MyGameState(
 				final GameSetup setup,
@@ -41,14 +39,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			this.detectives = detectives;
 
 			if(remaining.contains(mrX.piece())) {
-				Set<Move> singleMoves = ImmutableSet.copyOf(makeSingleMoves(this.setup, this.detectives, this.mrX, mrX.location()));
-
-				if(mrX.has(ScotlandYard.Ticket.DOUBLE) && setup.moves.size() > 1) {
-					Set<Move> doubleMoves = ImmutableSet.copyOf(makeDoubleMoves(this.setup, this.detectives, this.mrX, mrX.location()));
-					this.moves = ImmutableSet.<Move>builder().addAll(singleMoves).addAll(doubleMoves).build();
-				} else {
-					this.moves = ImmutableSet.<Move>builder().addAll(singleMoves).build();
-				}
+				createMrXMoves();
 			} else {
 				Set<Move> singleMoves = new HashSet<>();
 
@@ -61,6 +52,17 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			}
 			//System.out.println(remaining);
 			System.out.println(this.moves);
+		}
+
+		private void createMrXMoves() {
+			Set<Move> singleMoves = ImmutableSet.copyOf(makeSingleMoves(this.setup, this.detectives, this.mrX, mrX.location()));
+
+			if(mrX.has(ScotlandYard.Ticket.DOUBLE) && setup.moves.size() > 1) {
+				Set<Move> doubleMoves = ImmutableSet.copyOf(makeDoubleMoves(this.setup, this.detectives, this.mrX, mrX.location()));
+				this.moves = ImmutableSet.<Move>builder().addAll(singleMoves).addAll(doubleMoves).build();
+			} else {
+				this.moves = ImmutableSet.<Move>builder().addAll(singleMoves).build();
+			}
 		}
 
 		@Nonnull
@@ -181,7 +183,6 @@ public final class MyGameStateFactory implements Factory<GameState> {
 				// empty all the available moves
 				emptyGetMoves();
 				// winner stores Mr X
-				this.winner = ImmutableSet.of(mrX.piece());
 				return ImmutableSet.of(mrX.piece());
 			}
 			else{
@@ -193,7 +194,6 @@ public final class MyGameStateFactory implements Factory<GameState> {
 				// if Mr X captured or cornered detectives win
 				if(detectiveWinMrXCaptured || detectiveWinMrXCorner) {
 					emptyGetMoves();
-					this.winner = ImmutableSet.copyOf(detectives.stream().map(Player::piece).collect(Collectors.toSet()));
 					return ImmutableSet.copyOf(detectives.stream().map(Player::piece).collect(Collectors.toSet()));
 				}
 			}
@@ -201,14 +201,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			// if moves is empty and nobody wins indication of a new round
 			if(this.moves.isEmpty()) {
 				// so creates moves for Mr X
-				Set<Move> singleMoves = ImmutableSet.copyOf(makeSingleMoves(this.setup, this.detectives, this.mrX, mrX.location()));
-
-				if(mrX.has(ScotlandYard.Ticket.DOUBLE) && setup.moves.size() > 1) {
-					Set<Move> doubleMoves = ImmutableSet.copyOf(makeDoubleMoves(this.setup, this.detectives, this.mrX, mrX.location()));
-					this.moves = ImmutableSet.<Move>builder().addAll(singleMoves).addAll(doubleMoves).build();
-				} else {
-					this.moves = ImmutableSet.<Move>builder().addAll(singleMoves).build();
-				}
+				createMrXMoves();
 			}
 			return ImmutableSet.copyOf(winners);
 		}
