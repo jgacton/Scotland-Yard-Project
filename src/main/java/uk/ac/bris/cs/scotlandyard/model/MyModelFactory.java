@@ -17,17 +17,15 @@ import java.util.stream.Collectors;
  */
 public final class MyModelFactory implements Factory<Model> {
 	private static final class MyModel implements Model {
-		public class NoSuchRegisteredObserver extends Exception {
-			public NoSuchRegisteredObserver(String errorMessage) {
-				super(errorMessage);
-			}
-		}
-		private MyGameStateFactory stateFactory;
 		private Board.GameState state;
 		private Set<Observer> observers = new HashSet<>();
 
-		MyModel(GameSetup setup, Player mrX, ImmutableList<Player> detectives) {
-			this.stateFactory = new MyGameStateFactory();
+		private MyModel(
+				GameSetup setup,
+				Player mrX,
+				ImmutableList<Player> detectives) {
+
+			MyGameStateFactory stateFactory = new MyGameStateFactory();
 			this.state = stateFactory.build(setup, mrX, detectives);
 		}
 
@@ -39,16 +37,19 @@ public final class MyModelFactory implements Factory<Model> {
 
 		@Override
 		public void registerObserver(@Nonnull Observer observer) {
-			if(observer.equals(null)) throw new java.lang.NullPointerException();
+			if(observer.hashCode() == 0) throw new java.lang.NullPointerException();
 			if(this.observers.contains(observer)) throw new IllegalArgumentException();
 			this.observers.add(observer);
 		}
 
 		@Override
 		public void unregisterObserver(@Nonnull Observer observer) {
-			if(observer.equals(null)) throw new java.lang.NullPointerException();
+			if(observer.hashCode() == 0) throw new java.lang.NullPointerException();
 			if(!this.observers.contains(observer)) throw new IllegalArgumentException();
-			this.observers = this.observers.stream().filter(x -> !x.equals(observer)).collect(Collectors.toSet());
+			this.observers = this.observers
+					.stream()
+					.filter(x -> !x.equals(observer))
+					.collect(Collectors.toSet());
 		}
 
 		@Nonnull
@@ -82,6 +83,7 @@ public final class MyModelFactory implements Factory<Model> {
 	@Nonnull @Override public Model build(GameSetup setup,
 	                                      Player mrX,
 	                                      ImmutableList<Player> detectives) {
+
 		return new MyModel(setup, mrX, detectives);
 	}
 }
