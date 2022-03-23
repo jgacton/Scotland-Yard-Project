@@ -341,11 +341,9 @@ public final class MyGameStateFactory implements Factory<GameState> {
 					logEntryFinal = ImmutableList.copyOf(LogMrXMove(logEntry, ticketUsedFinal, destinationFinal));
 
 					// takes used ticket away from Mr X by returning a new Mr X without this ticket
-					// Q - what happens to old Mr X?
 					Player newMrXUsedTicket  = mrX.use(ticketUsedFinal);
 
 					// moves Mr X to their new destination by returning a new Mr X at this destination
-					// Q - what happens to old Mr Xs?
 					newMrXChangedLoc =  newMrXUsedTicket.at(destinationFinal);
 				}
 				else {
@@ -367,7 +365,6 @@ public final class MyGameStateFactory implements Factory<GameState> {
 					logEntryFinal = ImmutableList.copyOf(LogMrXMove(logEntryFirstMove,ticketUsedFinal, destinationFinal));
 
 					// create new Mr X objects as previously
-					// Q - what happens to the old Mr X objects?
 					Player newMrXUsedTicket1  = mrX.use(ticketUsedIntermediate);
 					Player newMrXUsedTicket2  = newMrXUsedTicket1.use(ticketUsedFinal);
 					Player newMrXUsedDouble = newMrXUsedTicket2.use(ScotlandYard.Ticket.DOUBLE);
@@ -383,8 +380,6 @@ public final class MyGameStateFactory implements Factory<GameState> {
 				for(Player detective : detectives) {
 					remainingUpdated.add(detective.piece());
 				}
-
-				// little confused on this part
 
 				// returns a new game state and swaps to the detective turn
 				return new MyGameState(setup, ImmutableSet.copyOf(remainingUpdated), logEntryFinal, newMrXChangedLoc, detectives);
