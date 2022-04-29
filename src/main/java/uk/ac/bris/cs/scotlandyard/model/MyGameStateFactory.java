@@ -6,11 +6,18 @@ import javax.annotation.Nonnull;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+
 import uk.ac.bris.cs.scotlandyard.model.Board.GameState;
 import uk.ac.bris.cs.scotlandyard.model.ScotlandYard.Factory;
 
-import java.util.*;
 import java.util.stream.Collectors;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Collections;
+import java.util.Objects;
 
 /**
  * cw-model
@@ -25,6 +32,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		private final List<Player> detectives;
 		private ImmutableSet<Move> moves;
 
+		// Constructor for the private inner class MyGameState.
 		private MyGameState(
 				final GameSetup setup,
 				final ImmutableSet<Piece> remaining,
@@ -32,12 +40,15 @@ public final class MyGameStateFactory implements Factory<GameState> {
 				final Player mrX,
 				List<Player> detectives) {
 
+			// Assigns constructor parameters to relevant attributes.
 			this.setup = setup;
 			this.remaining = remaining;
 			this.log = log;
 			this.mrX = mrX;
 			this.detectives = detectives;
 
+			// If MrX is in remaining, he moves first so create MrX moves. Otherwise, create moves for all detectives
+			// in remaining.
 			if(remaining.contains(mrX.piece())) {
 				createMrXMoves();
 			} else {
@@ -52,6 +63,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			}
 		}
 
+		// Creates MrX Moves using the makeSingleMoves and makeDoubleMoves methods.
 		private void createMrXMoves() {
 			Set<Move> singleMoves = ImmutableSet.copyOf(makeSingleMoves(this.setup, this.detectives, this.mrX, mrX.location()));
 
@@ -68,7 +80,6 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		public GameSetup getSetup() {
 			return setup;
 		}
-
 		@Nonnull
 		@Override
 		public ImmutableSet<Piece> getPlayers() {
@@ -82,6 +93,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			return ImmutableSet.copyOf(playersMutable);
 		}
 
+		// Returns the location of the given detective, or Optional.empty() if the given detective is not in play.
 		@Nonnull
 		@Override
 		public Optional<Integer> getDetectiveLocation(Piece.Detective detective) {
@@ -94,6 +106,8 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			return Optional.empty();
 		}
 
+		// Returns the tickets of a given piece (MrX or detectives) or Optional.empty() if they have no tickets assigned
+		// to them.
 		@Nonnull
 		@Override
 		public Optional<TicketBoard> getPlayerTickets(Piece piece) {
@@ -132,6 +146,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			return false;
 		}
 
+		// Returns true if MrX has no single moves (this means he is surrounded by detectives and has therefore lost).
 		private boolean checkMrXCornered() {
 			// gets all the single moves of Mr X
 			Set<Move> singleMovesMrX = makeSingleMoves(setup, detectives, mrX, mrX.location());
@@ -139,22 +154,28 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			// if there are single moves, Mr X can make a move and is not cornered
 			return singleMovesMrX.isEmpty();
 		}
+
+		// Returns true if MrX's travel log is full.
 		private boolean mrXFillsLog() {
 			// checks if the size of true/false of moves equals the size of the log
 			return this.log.size() == this.setup.moves.size();
 		}
+
+		// Assigns the moves attribute to an empty set.
 		private void emptyGetMoves(){
 			Set<Move> empty = Collections.emptySet();
 			this.moves = ImmutableSet.copyOf(empty);
 		}
+
+		// Returns true if all the detectives can no longer move
 		private boolean checkDetectiveUnableToGet() {
 			// stores number of detectives unable to make a move
 			int numberOfDetectivesUnable = 0;
 			// for each detective checks if they have at least one of each ticket
 			for(Player detective : detectives) {
 				if(detective.hasAtLeast(ScotlandYard.Ticket.BUS, 1) ||
-						detective.hasAtLeast(ScotlandYard.Ticket.TAXI, 1)
-						|| detective.hasAtLeast(ScotlandYard.Ticket.UNDERGROUND, 1)) {
+						detective.hasAtLeast(ScotlandYard.Ticket.TAXI, 1) ||
+							detective.hasAtLeast(ScotlandYard.Ticket.UNDERGROUND, 1)) {
 					// if the detective does then a move can be made, so false is returned
 					return false;
 				}
@@ -167,6 +188,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			return numberOfDetectivesUnable == detectives.size();
 		}
 
+		// Checks if MrX or the detectives has won the game, and if so returns the winning pieces.
 		@Nonnull
 		@Override
 		public ImmutableSet<Piece> getWinner() {
@@ -311,6 +333,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			return checking;
 		}
 
+		// Returns a new GameState object of the updated state of the game after the given move has been made.
 		@Nonnull
 		@Override
 		public GameState advance(Move move) {
@@ -430,34 +453,40 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		}
 	}
 
+	// Given a set of arguments holding information about the game, checks they are valid and if so returns a
+	// corresponding GameState object
 	@Nonnull @Override public GameState build(GameSetup setup, Player mrX, ImmutableList<Player> detectives) {
-
+		// Game state cannot be created with an empty graph or empty list of which moves MrX reveals on.
 		if(setup.graph.nodes().size() == 0) throw new IllegalArgumentException();
 		if(setup.moves.isEmpty()) throw new IllegalArgumentException();
 
-		for(int i=0; i<detectives.size()-1; i++) {
-			for(int j =i+1; j<detectives.size(); j++) {
+		// Game state cannot be created if two detectives are in the same location or have the same piece.
+		for(int i = 0; i < detectives.size() - 1; i++) {
+			for(int j = i + 1; j < detectives.size(); j++) {
 				if(detectives.get(i).piece().equals(detectives.get(j).piece())) {
 					throw new IllegalArgumentException();
 				}
-				if(detectives.get(i).location()==(detectives.get(j).location())) {
+				if(detectives.get(i).location() == (detectives.get(j).location())) {
 					throw new IllegalArgumentException();
 				}
 			}
 		}
 
+		// Game state cannot be created if a detective has a double or secret ticket.
 		for(int i = 0; i < detectives.size(); i++) {
 			if(detectives.get(i).has(ScotlandYard.Ticket.DOUBLE) || (detectives.get(i).has(ScotlandYard.Ticket.SECRET))) {
 				throw new IllegalArgumentException();
 			}
 		}
 
+		// Adds MrX and detective players to the list of players yet to take their turn.
 		Set<Piece> remaining = new HashSet<>();
 		remaining.add(Piece.MrX.MRX);
 		for(int i = 0; i < detectives.size(); i++) {
 			remaining.add(detectives.get(i).piece());
 		}
 
+		// Returns a new MyGameState object with the given setup, mrX, detectives, and the list of players yet to move.
 		return new MyGameState(setup, ImmutableSet.copyOf(remaining), ImmutableList.of(), mrX, detectives);
 	}
 }
